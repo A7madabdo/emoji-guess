@@ -130,7 +130,8 @@ function createSession(username) {
       console.log(`[@${username}] connected to room ${state.roomId}`);
       setLive(true);
     } catch (err) {
-      const msg = String(err?.message || err).slice(0, 200);
+      const msg = String(err?.message || err).slice(0, 400);
+      if (err?.cause) console.log(`[@${username}] cause: ${String(err.cause?.message || err.cause).slice(0, 300)}`);
       console.log(`[@${username}] not connected: ${msg}`);
       setLive(false, friendlyError(msg));
       scheduleRetry();
@@ -143,10 +144,13 @@ function createSession(username) {
 
 function friendlyError(msg) {
   const m = msg.toLowerCase();
-  if (m.includes('not online') || m.includes('offline') || m.includes('not live') || m.includes('user_not_found') || m.includes("isn't online")) return 'Not LIVE yet (or wrong username). Retrying…';
-  if (m.includes('sign') || m.includes('429') || m.includes('rate') || m.includes('limit')) return 'TikTok sign server limit. Add a free SIGN_API_KEY (see README). Retrying…';
-  if (m.includes('403') || m.includes('blocked') || m.includes('captcha')) return 'TikTok blocked this server. Retrying…';
-  return 'Connect failed: ' + msg.slice(0, 80);
+  const key = process.env.SIGN_API_KEY ? 'key set' : 'NO SIGN_API_KEY';
+  let hint = '';
+  if (m.includes('not online') || m.includes('offline') || m.includes('not live') || m.includes('user_not_found') || m.includes("isn't online")) hint = 'Not LIVE yet or wrong username. ';
+  else if (m.includes('lack of permission') || m.includes('permission')) hint = 'Euler key lacks permission (check plan/key). ';
+  else if (m.includes('429') || m.includes('rate limit')) hint = 'Rate limited. ';
+  else if (m.includes('403') || m.includes('blocked') || m.includes('captcha')) hint = 'TikTok blocked this server. ';
+  return hint + '[' + key + '] ' + msg.replace(/\s+/g, ' ').slice(0, 140);
 }
 
 function stopSession(username) {
