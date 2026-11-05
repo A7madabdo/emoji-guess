@@ -27,6 +27,9 @@ Runs in the phone's browser, so it needs to be put online once (free).
    - If it says "Waiting for your LIVE…", the username is wrong or the LIVE hasn't started yet.
      It keeps retrying every 15 seconds.
 
+To hide the browser address bar: Safari → Share → **Add to Home Screen** (iPhone) or Chrome → ⋮ → **Add to Home screen**
+(Android), then open the game from that icon. It runs full-screen like an app.
+
 Tip: turn off auto-lock on the phone so the screen stays on. Keep the phone charging.
 
 ## Buttons on the screen
@@ -55,12 +58,13 @@ The test panel has a 🎁 button to try it.
 - Puzzles: edit `public/puzzles.js` (the first answer is shown on the tiles, the others also count).
 - Timing: `ROUND_SECONDS`, `HINT_EVERY`, `PAUSE_SECONDS` at the top of the script in `public/index.html`.
 
-## If the badge says "Not LIVE yet", "sign server limit" or "blocked"
-TikTok blocks or rate-limits many cloud server IPs (Render included). The fix is a free signing key:
-1. Go to eulerstream.com, sign up (free), copy your API key.
-2. On Render → your service → Environment → Add: key `SIGN_API_KEY`, value = the key → Save (it redeploys).
-3. Also double-check the username has no @ and the account is actually LIVE when you press Start.
-Render → Logs shows the raw error from TikTok if it still fails.
+## Connecting to TikTok (needs a free Euler Stream key)
+TikTok blocks most cloud servers, so the game connects through Euler Stream's managed WebSocket,
+which is included in their **free Community plan** (25 connections).
+1. Sign up at eulerstream.com (free) and copy your API key.
+2. On Render → your service → Environment → Add `SIGN_API_KEY` = the key → Save (it redeploys).
+3. The account must be LIVE when you press Start. The badge shows the reason if it can't connect.
+Without a key the game falls back to connecting to TikTok directly, which only works from a home PC.
 
 ## Notes
 - The free Render plan sleeps after 15 minutes without visitors. The first open after that takes

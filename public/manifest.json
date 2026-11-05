@@ -1,0 +1,10 @@
+{
+  "name": "Emoji Guess",
+  "short_name": "Emoji Guess",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#4A22F0",
+  "theme_color": "#4A22F0",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

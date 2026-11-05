@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
 const room = (username) => 'u:' + username;
 
 function createSession(username) {
-  const s = { username, live: false, connection: null, retryTimer: null, stopped: false, viewers: new Set() };
+  const s = { username, live: false, connection: null, ws: null, retryTimer: null, stopped: false, viewers: new Set() };
 
   const setLive = (live, error) => {
     s.live = live;
@@ -81,49 +81,93 @@ function createSession(username) {
     }, RETRY_MS);
   };
 
-  async function tryConnect() {
-    if (s.stopped) return;
+  function emitChat(user, comment) {
+    comment = String(comment || '').trim();
+    if (!comment) return;
+    io.to(room(username)).emit('comment', {
+      user: user?.uniqueId || user?.userId || user?.id || 'viewer',
+      nickname: user?.nickname || user?.uniqueId || 'viewer',
+      comment,
+    });
+  }
+  function emitGift(user, d) {
+    const streakable = d.giftType === 1 || d.giftDetails?.type === 1 || d.giftDetails?.combo === true;
+    if (streakable && !d.repeatEnd) return;
+    const count = Number(d.repeatCount || d.comboCount || 1);
+    const diamonds = Number(d.diamondCount ?? d.giftDetails?.diamondCount ?? d.extendedGiftInfo?.diamond_count ?? 1);
+    io.to(room(username)).emit('gift', {
+      user: user?.uniqueId || user?.userId || user?.id || 'viewer',
+      nickname: user?.nickname || user?.uniqueId || 'viewer',
+      giftName: d.giftName || d.giftDetails?.giftName || d.giftDetails?.name || d.gift?.name || 'a gift',
+      count,
+      coins: diamonds * count,
+    });
+  }
+
+  // ---- Path A: Euler Stream managed WebSocket (works on the free Community plan) ----
+  let logged = 0;
+  function connectEuler() {
+    const key = process.env.SIGN_API_KEY;
+    const url = `wss://ws.eulerstream.com?uniqueId=${encodeURIComponent(username)}&apiKey=${encodeURIComponent(key)}`;
+    const ws = new WebSocket(url);
+    s.ws = ws;
+    ws.addEventListener('open', () => {
+      console.log(`[@${username}] Euler WebSocket open`);
+      setLive(true);
+    });
+    ws.addEventListener('message', (ev) => {
+      let data;
+      try { data = JSON.parse(typeof ev.data === 'string' ? ev.data : Buffer.from(ev.data).toString()); } catch { return; }
+      const list = Array.isArray(data?.messages) ? data.messages : [data];
+      for (const msg of list) {
+        if (!msg || typeof msg !== 'object') continue;
+        const type = String(msg.type || msg.event || msg.name || msg.messageType || msg.method || '');
+        const d = msg.data ?? msg.message ?? msg.payload ?? msg;
+        if (logged < 6) { logged++; console.log(`[@${username}] event ${type || '?'} keys=${Object.keys(d || {}).slice(0, 12).join(',')}`); }
+        const user = d?.user || d?.userIdentity || msg.user;
+        if (/chat/i.test(type) || (d?.comment !== undefined && user)) emitChat(user, d.comment ?? d.content);
+        else if (/gift/i.test(type) || d?.giftId !== undefined || d?.giftDetails) emitGift(user, d);
+      }
+    });
+    ws.addEventListener('close', (ev) => {
+      if (s.stopped) return;
+      const reasons = { 4005: 'Stream ended', 4401: 'Invalid Euler API key', 4403: 'Euler key has no permission', 4404: 'Not LIVE yet (or wrong username)', 4429: 'Too many connections on this Euler key', 4556: 'TikTok fetch error', 4557: 'Room info fetch error' };
+      const why = reasons[ev.code] || `closed (${ev.code}${ev.reason ? ' ' + ev.reason : ''})`;
+      console.log(`[@${username}] Euler WebSocket ${why}`);
+      setLive(false, why + '. Retrying…');
+      scheduleRetry();
+    });
+    ws.addEventListener('error', (ev) => {
+      if (s.stopped || ws.readyState === WebSocket.OPEN) return;
+      const msg = String(ev?.message || ev?.error?.message || 'network error');
+      console.log(`[@${username}] Euler WebSocket error: ${msg}`);
+      setLive(false, 'Could not reach Euler Stream: ' + msg.slice(0, 80) + '. Retrying…');
+      try { ws.close(); } catch {}
+      scheduleRetry();
+    });
+    setTimeout(() => {
+      if (!s.stopped && s.ws === ws && ws.readyState === WebSocket.CONNECTING) {
+        console.log(`[@${username}] Euler WebSocket connect timeout`);
+        try { ws.close(); } catch {}
+        setLive(false, 'Euler Stream connect timeout. Retrying…');
+        scheduleRetry();
+      }
+    }, 20000);
+  }
+
+  // ---- Path B: direct connector (needs no key, but TikTok blocks most cloud servers) ----
+  async function connectDirect() {
     if (s.connection) s.connection.removeAllListeners();
-    const options = { enableExtendedGiftInfo: true };
-    if (process.env.SIGN_API_KEY) options.signApiKey = process.env.SIGN_API_KEY;
-    const connection = new TikTokLiveConnection(username, options);
+    const connection = new TikTokLiveConnection(username, { enableExtendedGiftInfo: true });
     s.connection = connection;
-
-    connection.on(WebcastEvent.CHAT, (data) => {
-      const user = data.user || data;
-      const comment = String(data.comment || '').trim();
-      if (!comment) return;
-      io.to(room(username)).emit('comment', {
-        user: user.uniqueId || user.userId || 'viewer',
-        nickname: user.nickname || user.uniqueId || 'viewer',
-        comment,
-      });
-    });
-
-    // Gifts. Streakable gifts (giftType 1) arrive many times while the viewer taps;
-    // we only send the final total when the streak ends.
-    connection.on(WebcastEvent.GIFT, (data) => {
-      const user = data.user || data;
-      const streakable = data.giftType === 1;
-      if (streakable && !data.repeatEnd) return;
-      const count = Number(data.repeatCount || 1);
-      const diamonds = Number(data.diamondCount ?? data.giftDetails?.diamondCount ?? data.extendedGiftInfo?.diamond_count ?? 1);
-      io.to(room(username)).emit('gift', {
-        user: user.uniqueId || user.userId || 'viewer',
-        nickname: user.nickname || user.uniqueId || 'viewer',
-        giftName: data.giftName || data.giftDetails?.giftName || 'a gift',
-        count,
-        coins: diamonds * count,
-      });
-    });
-
+    connection.on(WebcastEvent.CHAT, (data) => emitChat(data.user || data, data.comment));
+    connection.on(WebcastEvent.GIFT, (data) => emitGift(data.user || data, data));
     connection.on('disconnected', () => {
       if (s.stopped) return;
       console.log(`[@${username}] disconnected, retrying`);
       setLive(false);
       scheduleRetry();
     });
-
     try {
       const state = await connection.connect();
       if (s.stopped) return connection.disconnect?.();
@@ -131,11 +175,15 @@ function createSession(username) {
       setLive(true);
     } catch (err) {
       const msg = String(err?.message || err).slice(0, 400);
-      if (err?.cause) console.log(`[@${username}] cause: ${String(err.cause?.message || err.cause).slice(0, 300)}`);
       console.log(`[@${username}] not connected: ${msg}`);
       setLive(false, friendlyError(msg));
       scheduleRetry();
     }
+  }
+
+  function tryConnect() {
+    if (s.stopped) return;
+    if (process.env.SIGN_API_KEY) connectEuler(); else connectDirect();
   }
 
   tryConnect();
@@ -162,6 +210,7 @@ function stopSession(username) {
     s.connection.removeAllListeners();
     try { s.connection.disconnect(); } catch {}
   }
+  if (s.ws) { try { s.ws.close(1000); } catch {} }
   sessions.delete(username);
   console.log(`[@${username}] stopped (no game pages open)`);
 }
