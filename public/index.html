@@ -99,6 +99,16 @@
     background: var(--white); margin-inline-end: 6px; vertical-align: middle;
     animation: blink 1s steps(2) infinite;
   }
+  .title {
+    position: absolute; left: 50%; top: calc(14px + env(safe-area-inset-top)); z-index: 1;
+    transform: translateX(-50%) rotate(-2deg);
+    padding: 4px 18px 6px; border-radius: 16px; text-align: center; white-space: nowrap;
+    background: var(--sun); color: var(--ink); border: 4px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--ink);
+    font-size: 1.25rem; line-height: 1.1;
+  }
+  .title .ar { display: block; font-size: 1rem; color: var(--violet-deep); }
+  .cam .badge { top: calc(64px + env(safe-area-inset-top)); }
   .cam .flip {
     position: absolute; right: 12px; top: calc(8px + env(safe-area-inset-top));
     width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink);
@@ -171,14 +181,15 @@
   .stake.low { background: var(--ink); color: var(--sun); }
   .clue { font-size: clamp(2rem, 11vw, 3.6rem); line-height: 1.15; letter-spacing: 0.06em; white-space: nowrap; }
 
-  .tiles { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; min-height: 2.3rem; }
+  .tiles { position: relative; display: flex; flex-wrap: nowrap; justify-content: center; gap: 4px; min-height: 2.3rem; --n: 8; }
   .tile {
-    width: 1.8rem; height: 2.2rem;
+    --w: clamp(1.05rem, calc((100vw - 36px) / var(--n) - 6px), 1.8rem);
+    width: var(--w); height: calc(var(--w) * 1.22); flex: none;
     display: grid; place-items: center;
     background: var(--white); color: var(--ink);
     border: 3px solid var(--ink); border-radius: 7px;
     box-shadow: 3px 3px 0 var(--ink);
-    font-size: 1.25rem; line-height: 1;
+    font-size: calc(var(--w) * 0.7); line-height: 1;
   }
   .tile .ch { visibility: hidden; }
   .tile.shown .ch { visibility: visible; }
@@ -186,7 +197,7 @@
   .tiles.win .tile { background: var(--mint); }
   .tiles.missed .tile { background: var(--pink); color: var(--white); }
   .tiles.win .tile, .tiles.missed .tile { animation: pop 0.35s ease-out backwards; }
-  .gap { width: 0.6rem; }
+  .gap { width: 0.45rem; flex: none; }
 
   .message {
     text-align: center; font-size: 0.95rem; line-height: 1.2; min-height: 1.5em;
@@ -331,6 +342,7 @@
   <div class="cam off" id="cam">
     <video id="video" autoplay playsinline muted></video>
     <div class="cam-off" id="camOff">Camera is off.<br>Tap the camera button to turn it on.</div>
+    <div class="title">🤔 Emoji Guess<span class="ar">خمّن الإيموجي</span></div>
     <span class="badge" id="status">Not connected</span>
     <button class="flip" id="flipBtn" aria-label="Switch camera">🔄</button>
     <div class="controls" id="controls">
@@ -591,7 +603,9 @@ function buildTiles() {
   box.className = 'tiles';
   box.dir = /[؀-ۿ]/.test(current.display) ? 'rtl' : 'ltr';
   box.replaceChildren();
-  Array.from(current.display).forEach((ch, i) => {
+  const chars = Array.from(current.display);
+  box.style.setProperty('--n', chars.length + chars.filter((c) => c === ' ').length * 0.4);
+  chars.forEach((ch, i) => {
     if (ch === ' ') {
       const gap = document.createElement('span');
       gap.className = 'gap';
