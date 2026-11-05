@@ -119,7 +119,7 @@
     animation: wiggle 2.4s ease-in-out infinite;
   }
   .cheat .ar { display: block; font-size: 0.85rem; }
-  .controls { right: auto; left: 10px; bottom: 62px; z-index: 2; flex-direction: column; }
+  .controls { right: auto; left: 10px; bottom: 60px; z-index: 2; flex-direction: column; gap: 4px; }
   .cheat { pointer-events: none; }
   .cam .flip {
     position: absolute; right: 12px; top: calc(8px + env(safe-area-inset-top));
@@ -129,7 +129,7 @@
   .controls { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; opacity: 0.45; transition: opacity 0.2s; }
   .controls:hover, .controls:focus-within { opacity: 1; }
   .controls button {
-    font: inherit; font-size: 0.85rem; width: 36px; height: 36px; border-radius: 50%;
+    font: inherit; font-size: 0.8rem; width: 32px; height: 32px; border-radius: 50%;
     border: 3px solid var(--ink); background: var(--white); color: var(--ink); cursor: pointer;
   }
 
@@ -287,17 +287,8 @@
   }
   .takeover .streak.on { display: block; }
 
-  .gift-toast {
-    position: absolute; left: 50%; top: 42%; z-index: 2;
-    transform: translate(-50%, -50%) rotate(-4deg);
-    padding: 8px 18px; border-radius: 16px;
-    background: var(--pink); color: var(--white); border: 4px solid var(--ink);
-    box-shadow: 6px 6px 0 var(--ink);
-    font-size: 1.1rem; line-height: 1.25; text-align: center; white-space: nowrap;
-    display: none;
-  }
-  .gift-toast.show { display: block; animation: slam 0.5s cubic-bezier(.2,1.5,.4,1); }
-  .gift-toast small { display: block; font-size: 0.85rem; font-weight: 600; }
+  .cheat.gift { background: var(--sun); color: var(--ink); animation: slam 0.5s cubic-bezier(.2,1.5,.4,1); }
+  .cheat.gift .ar { color: var(--ink); }
   .boost {
     display: none; margin: 0 auto; padding: 1px 12px; border-radius: 999px; width: fit-content;
     background: var(--ink); color: var(--sun); font-size: 0.85rem;
@@ -356,7 +347,7 @@
     <video id="video" autoplay playsinline muted></video>
     <div class="cam-off" id="camOff">Camera is off.<br>Tap the camera button to turn it on.</div>
     <div class="title">🤔 Emoji Guess<span class="ar">خمّن الإيموجي</span></div>
-    <div class="cheat">🌹 Rose = cheat! reveals a letter<span class="ar">وردة = غش! تكشف لك حرف</span></div>
+    <div class="cheat" id="cheat">🌹 Rose = cheat! reveals a letter<span class="ar">وردة = غش! تكشف لك حرف</span></div>
     <span class="badge" id="status">Not connected</span>
     <button class="flip" id="flipBtn" aria-label="Switch camera">🔄</button>
     <div class="controls" id="controls">
@@ -382,7 +373,6 @@
     </div>
 
     <div class="stage">
-      <div class="gift-toast" id="giftToast"></div>
       <div class="sticker" id="sticker"><span class="cat" id="cat"></span><div class="clue" id="clue"></div><span class="stake" id="stake">14 pts</span></div>
     </div>
 
@@ -635,7 +625,6 @@ function nextRound() {
   revealed = new Set();
   boosted = new Map();
   renderBoost();
-  $('giftToast').classList.remove('show');
   timeLeft = ROUND_SECONDS;
   phase = 'playing';
 
@@ -728,18 +717,21 @@ function handleGift(g) {
   sound.play('gift');
   const what = g.count > 1 ? g.count + '× ' + g.giftName : g.giftName;
   const line = got ? (got === 1 ? '1 letter revealed' : got + ' letters revealed') : 'thank you!';
-  showGiftToast('🎁 ' + g.nickname + ' sent ' + what, line + ' · ' + BOOST_MULTIPLIER + '× points if they win');
+  showGiftToast('🎁 ' + g.nickname + ' sent ' + what + ' · ' + line, BOOST_MULTIPLIER + '× points if they win · نقاط مضاعفة');
 }
 
+const CHEAT_HTML = $('cheat').innerHTML;
 function showGiftToast(title, sub) {
-  const t = $('giftToast');
+  const t = $('cheat');
   t.replaceChildren(document.createTextNode(title));
-  const small = document.createElement('small');
-  small.textContent = sub;
-  t.append(small);
-  t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+  const line = document.createElement('span');
+  line.className = 'ar'; line.style.direction = 'ltr';
+  const [en, ar] = sub.split(' · ');
+  line.append(document.createTextNode(en + ' · '), Object.assign(document.createElement('span'), { className: 'ar', textContent: ar, style: 'display:inline' }));
+  t.append(line);
+  t.classList.remove('gift'); void t.offsetWidth; t.classList.add('gift');
   clearTimeout(giftToastTimer);
-  giftToastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+  giftToastTimer = setTimeout(() => { t.classList.remove('gift'); t.innerHTML = CHEAT_HTML; }, 3500);
 }
 
 function renderBoost() {
