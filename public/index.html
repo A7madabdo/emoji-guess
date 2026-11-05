@@ -363,7 +363,8 @@
       <button id="camBtn" aria-label="Camera on or off">📷</button>
       <button id="skipBtn" aria-label="Skip puzzle">⏭</button>
       <button id="testToggle" aria-label="Test comments">T</button>
-      <button id="muteBtn" aria-label="Sound on or off">🔊</button>
+      <button id="muteBtn" aria-label="Sound effects on or off">🔊</button>
+      <button id="musicBtn" aria-label="Music on or off">🎵</button>
     </div>
   </div>
   <div class="zig" aria-hidden="true"></div>
@@ -436,8 +437,10 @@ const sound = (() => {
   const files = { music: 'audio/music.mp3', win: 'audio/win.mp3', hint: 'audio/hint.mp3', gift: 'audio/gift.mp3', tick: 'audio/tick.mp3', miss: 'audio/miss.mp3' };
   const clips = {};
   let ctx = null, music = null, muted = false, unlocked = false;
+  let musicOn = true, synthLoop = null;
   const MUSIC_VOL = 0.22;
   try { muted = localStorage.getItem('emoji-guess-muted') === '1'; } catch {}
+  try { musicOn = localStorage.getItem('emoji-guess-music') !== '0'; } catch {}
 
   function load() {
     for (const [k, src] of Object.entries(files)) {
@@ -479,27 +482,90 @@ const sound = (() => {
   }
 
   function duck() {
-    if (!music) return;
-    music.volume = 0.06;
-    setTimeout(() => { music.volume = MUSIC_VOL; }, 2500);
+    if (music && clips.music) { music.volume = 0.06; setTimeout(() => { music.volume = MUSIC_VOL; }, 2500); }
+    if (synthLoop) synthLoop.duck();
+  }
+
+  // Built-in chiptune loop, used only when audio/music.mp3 is missing.
+  function makeSynthLoop() {
+    const master = ctx.createGain(); master.gain.value = 0.07; master.connect(ctx.destination);
+    const BPM = 125, step = 60 / BPM / 2; // eighth notes
+    const bass = [110, 110, 146.8, 146.8, 98, 98, 130.8, 130.8];
+    const arp = [[440, 554, 659, 554], [587, 740, 880, 740], [392, 494, 587, 494], [523, 659, 784, 659]];
+    let i = 0, next = ctx.currentTime + 0.05, timer = null, running = true;
+    const note = (freq, t, len, type, vol) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+      o.connect(g).connect(master); o.start(t); o.stop(t + len + 0.02);
+    };
+    const kick = (t) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+      g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      o.connect(g).connect(master); o.start(t); o.stop(t + 0.2);
+    };
+    const hat = (t) => {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.03, ctx.sampleRate), d = buf.getChannelData(0);
+      for (let k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / d.length);
+      const src = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+      src.buffer = buf; f.type = 'highpass'; f.frequency.value = 6000; g.gain.value = 0.25;
+      src.connect(f).connect(g).connect(master); src.start(t);
+    };
+    function schedule() {
+      if (!running) return;
+      while (next < ctx.currentTime + 0.3) {
+        const bar = Math.floor(i / 8) % 4, beat = i % 8;
+        if (beat % 2 === 0) kick(next);
+        if (beat % 2 === 1) hat(next);
+        note(bass[beat], next, step * 0.9, 'triangle', 0.8);
+        note(arp[bar][beat % 4] * (beat >= 4 ? 2 : 1), next, step * 0.6, 'square', 0.18);
+        i++; next += step;
+      }
+      timer = setTimeout(schedule, 100);
+    }
+    schedule();
+    return {
+      stop() { running = false; clearTimeout(timer); master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2); setTimeout(() => master.disconnect(), 300); },
+      duck() { master.gain.setValueAtTime(0.02, ctx.currentTime); master.gain.linearRampToValueAtTime(0.07, ctx.currentTime + 2.5); },
+    };
+  }
+
+  function playMusic() {
+    if (muted || !musicOn || !unlocked) return;
+    if (clips.music) { music.play().catch(() => {}); return; }
+    if (!synthLoop && ctx) synthLoop = makeSynthLoop();
+  }
+  function stopMusic() {
+    if (music) music.pause();
+    if (synthLoop) { synthLoop.stop(); synthLoop = null; }
   }
 
   function start() {        // call from a user tap (browsers block autoplay otherwise)
     unlocked = true;
     if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
     if (ctx?.state === 'suspended') ctx.resume();
-    if (!muted && music) music.play().catch(() => {});
+    // if the mp3 shows up later, switch from the synth loop to it
+    if (music) music.addEventListener('canplaythrough', () => { if (synthLoop) { stopMusic(); playMusic(); } }, { once: true });
+    playMusic();
+  }
+
+  function toggleMusic() {
+    musicOn = !musicOn;
+    try { localStorage.setItem('emoji-guess-music', musicOn ? '1' : '0'); } catch {}
+    if (musicOn) playMusic(); else stopMusic();
+    return musicOn;
   }
 
   function toggleMute() {
     muted = !muted;
     try { localStorage.setItem('emoji-guess-muted', muted ? '1' : '0'); } catch {}
-    if (music) { if (muted) music.pause(); else if (unlocked) music.play().catch(() => {}); }
+    if (muted) stopMusic(); else playMusic();
     return muted;
   }
 
   load();
-  return { play, start, toggleMute, isMuted: () => muted };
+  return { play, start, toggleMute, toggleMusic, isMuted: () => muted, isMusicOn: () => musicOn };
 })();
 let queue = [];
 let round = 0;
@@ -877,6 +943,7 @@ function begin(username) {
   $('setup').classList.add('hidden');
   sound.start();
   $('muteBtn').textContent = sound.isMuted() ? '🔇' : '🔊';
+  $('musicBtn').style.opacity = sound.isMusicOn() ? '' : '0.4';
   connectLive(username);
   if (!username) $('status').textContent = 'Test mode';
   startCamera();
@@ -894,6 +961,7 @@ $('startBtn').addEventListener('click', () => {
 $('testBtn').addEventListener('click', () => { begin(''); $('test').classList.add('open'); });
 $('username').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('startBtn').click(); });
 
+$('musicBtn').addEventListener('click', () => { $('musicBtn').style.opacity = sound.toggleMusic() ? '' : '0.4'; });
 $('muteBtn').addEventListener('click', () => { $('muteBtn').textContent = sound.toggleMute() ? '🔇' : '🔊'; });
 $('camBtn').addEventListener('click', () => (stream ? stopCamera() : startCamera()));
 $('flipBtn').addEventListener('click', () => { facing = facing === 'user' ? 'environment' : 'user'; startCamera(); });
@@ -922,6 +990,7 @@ document.addEventListener('keydown', (e) => {
   if (k === 't') $('testToggle').click();
   if (k === 'n') nextRound();
   if (k === 'm') $('muteBtn').click();
+  if (k === 'b') $('musicBtn').click();
   if (k === 'r' && confirm('Reset the leaderboard?')) { scores = {}; saveScores(); renderPodium(); }
 });
 

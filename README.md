@@ -38,7 +38,7 @@ Tip: turn off auto-lock on the phone so the screen stays on. Keep the phone char
 ## Sound
 Sound effects and a background music loop were generated with ElevenLabs. Drop the files into
 `public/audio/` with the names listed in `public/audio/README.md`. Until then the game plays small
-built-in synthesized sounds. 🔊 button (or M key) mutes everything.
+built-in synthesized sounds. 🔊 button (M key) mutes sound effects and music; 🎵 button (B key) toggles only the background music. If `music.mp3` is missing, a built-in chiptune loop plays instead.
 
 ## Puzzles
 90 puzzles in `public/puzzles.js`: movies, songs, sayings, silly everyday things, animals, Filipino food,
