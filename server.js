@@ -45,7 +45,7 @@ io.on('connection', (socket) => {
     joined = username;
     socket.join(room(username));
     s.viewers.add(socket.id);
-    socket.emit('status', { live: s.live, username });
+    socket.emit('status', { live: s.live, username, error: s.error || '' });
   });
 
   socket.on('disconnect', leave);
@@ -67,9 +67,10 @@ const room = (username) => 'u:' + username;
 function createSession(username) {
   const s = { username, live: false, connection: null, retryTimer: null, stopped: false, viewers: new Set() };
 
-  const setLive = (live) => {
+  const setLive = (live, error) => {
     s.live = live;
-    io.to(room(username)).emit('status', { live, username });
+    s.error = error || '';
+    io.to(room(username)).emit('status', { live, username, error: s.error });
   };
 
   const scheduleRetry = () => {
@@ -129,14 +130,23 @@ function createSession(username) {
       console.log(`[@${username}] connected to room ${state.roomId}`);
       setLive(true);
     } catch (err) {
-      console.log(`[@${username}] not connected: ${err?.message || err}`);
-      setLive(false);
+      const msg = String(err?.message || err).slice(0, 200);
+      console.log(`[@${username}] not connected: ${msg}`);
+      setLive(false, friendlyError(msg));
       scheduleRetry();
     }
   }
 
   tryConnect();
   return s;
+}
+
+function friendlyError(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes('not online') || m.includes('offline') || m.includes('not live') || m.includes('user_not_found') || m.includes("isn't online")) return 'Not LIVE yet (or wrong username). Retrying…';
+  if (m.includes('sign') || m.includes('429') || m.includes('rate') || m.includes('limit')) return 'TikTok sign server limit. Add a free SIGN_API_KEY (see README). Retrying…';
+  if (m.includes('403') || m.includes('blocked') || m.includes('captcha')) return 'TikTok blocked this server. Retrying…';
+  return 'Connect failed: ' + msg.slice(0, 80);
 }
 
 function stopSession(username) {

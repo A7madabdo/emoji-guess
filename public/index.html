@@ -94,6 +94,7 @@
     background: var(--white); color: var(--ink); border: 3px solid var(--ink);
   }
   .cam .badge.live { background: var(--pink); color: var(--white); }
+  .cam .badge.err { background: var(--ink); color: var(--sun); white-space: normal; max-width: 70%; line-height: 1.2; }
   .cam .badge.live::before {
     content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
     background: var(--white); margin-inline-end: 6px; vertical-align: middle;
@@ -476,48 +477,54 @@ const sound = (() => {
     if (synthLoop) synthLoop.duck();
   }
 
-  // Built-in chiptune loop, used only when audio/music.mp3 is missing.
+  // Built-in calm lo-fi loop, used only when audio/music.mp3 is missing.
   function makeSynthLoop() {
-    const master = ctx.createGain(); master.gain.value = 0.07; master.connect(ctx.destination);
-    const BPM = 125, step = 60 / BPM / 2; // eighth notes
-    const bass = [110, 110, 146.8, 146.8, 98, 98, 130.8, 130.8];
-    const arp = [[440, 554, 659, 554], [587, 740, 880, 740], [392, 494, 587, 494], [523, 659, 784, 659]];
-    let i = 0, next = ctx.currentTime + 0.05, timer = null, running = true;
-    const note = (freq, t, len, type, vol) => {
+    const master = ctx.createGain(); master.gain.value = 0.09;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+    master.connect(lp).connect(ctx.destination);
+    const BPM = 78, beat = 60 / BPM;
+    // four mellow chords (Fmaj7 Am7 Dm7 Gm7-ish), two bars each
+    const chords = [[174.6, 220, 261.6, 329.6], [220, 261.6, 329.6, 392], [146.8, 174.6, 220, 261.6], [196, 233.1, 293.7, 349.2]];
+    const bassline = [87.3, 110, 73.4, 98];
+    let bar = 0, next = ctx.currentTime + 0.05, timer = null, running = true;
+    const pad = (freq, t, len, vol) => {
       const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = type; o.frequency.value = freq;
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + len);
-      o.connect(g).connect(master); o.start(t); o.stop(t + len + 0.02);
+      o.type = 'triangle'; o.frequency.value = freq; o.detune.value = (Math.random() - 0.5) * 8;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.4);
+      g.gain.setValueAtTime(vol, t + len - 0.6); g.gain.linearRampToValueAtTime(0, t + len);
+      o.connect(g).connect(master); o.start(t); o.stop(t + len + 0.05);
     };
-    const kick = (t) => {
+    const pluck = (freq, t, vol) => {
       const o = ctx.createOscillator(), g = ctx.createGain();
-      o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
-      g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-      o.connect(g).connect(master); o.start(t); o.stop(t + 0.2);
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+      o.connect(g).connect(master); o.start(t); o.stop(t + 1);
     };
-    const hat = (t) => {
-      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.03, ctx.sampleRate), d = buf.getChannelData(0);
-      for (let k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / d.length);
+    const brush = (t) => {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate), d = buf.getChannelData(0);
+      for (let k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / d.length) * 0.5;
       const src = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter();
-      src.buffer = buf; f.type = 'highpass'; f.frequency.value = 6000; g.gain.value = 0.25;
+      src.buffer = buf; f.type = 'bandpass'; f.frequency.value = 3000; g.gain.value = 0.12;
       src.connect(f).connect(g).connect(master); src.start(t);
     };
     function schedule() {
       if (!running) return;
-      while (next < ctx.currentTime + 0.3) {
-        const bar = Math.floor(i / 8) % 4, beat = i % 8;
-        if (beat % 2 === 0) kick(next);
-        if (beat % 2 === 1) hat(next);
-        note(bass[beat], next, step * 0.9, 'triangle', 0.8);
-        note(arp[bar][beat % 4] * (beat >= 4 ? 2 : 1), next, step * 0.6, 'square', 0.18);
-        i++; next += step;
+      while (next < ctx.currentTime + 0.5) {
+        const c = chords[Math.floor(bar / 2) % 4], barLen = beat * 4;
+        c.forEach((f) => pad(f, next, barLen, 0.07));
+        pluck(bassline[Math.floor(bar / 2) % 4], next, 0.5);
+        pluck(bassline[Math.floor(bar / 2) % 4] * 1.5, next + beat * 2.5, 0.25);
+        [1, 3].forEach((b) => brush(next + beat * b));
+        const mel = c[(bar + 1) % 4] * 2;
+        pluck(mel, next + beat * (bar % 2 ? 1.5 : 3), 0.18);
+        bar++; next += barLen;
       }
-      timer = setTimeout(schedule, 100);
+      timer = setTimeout(schedule, 200);
     }
     schedule();
     return {
-      stop() { running = false; clearTimeout(timer); master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2); setTimeout(() => master.disconnect(), 300); },
-      duck() { master.gain.setValueAtTime(0.02, ctx.currentTime); master.gain.linearRampToValueAtTime(0.07, ctx.currentTime + 2.5); },
+      stop() { running = false; clearTimeout(timer); master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3); setTimeout(() => master.disconnect(), 400); },
+      duck() { master.gain.setValueAtTime(0.03, ctx.currentTime); master.gain.linearRampToValueAtTime(0.09, ctx.currentTime + 2.5); },
     };
   }
 
@@ -920,8 +927,9 @@ function connectLive(username) {
     socket.on('gift', handleGift);
     socket.on('status', (s) => {
       const el = $('status');
-      if (s.error) el.textContent = s.error;
+      if (s.error) el.textContent = '⚠️ ' + s.error;
       else el.textContent = s.live ? 'LIVE' : (s.username ? 'Waiting for your LIVE…' : 'Test mode');
+      el.classList.toggle('err', !!s.error);
       el.classList.toggle('live', !!s.live);
     });
     socket.on('connect', () => socket.emit('watch', currentUser));

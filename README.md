@@ -38,7 +38,7 @@ Tip: turn off auto-lock on the phone so the screen stays on. Keep the phone char
 ## Sound
 Sound effects and a background music loop were generated with ElevenLabs. Drop the files into
 `public/audio/` with the names listed in `public/audio/README.md`. Until then the game plays small
-built-in synthesized sounds. 🔊 button (M key) mutes sound effects and music; 🎵 button (B key) toggles only the background music. If `music.mp3` is missing, a built-in chiptune loop plays instead.
+built-in synthesized sounds. 🔊 button (M key) mutes sound effects and music; 🎵 button (B key) toggles only the background music. If `music.mp3` is missing, a built-in calm lo-fi loop plays instead.
 
 ## Puzzles
 90 puzzles in `public/puzzles.js`: movies, songs, sayings, silly everyday things, animals, Filipino food,
@@ -54,6 +54,13 @@ The test panel has a 🎁 button to try it.
 ## Customize
 - Puzzles: edit `public/puzzles.js` (the first answer is shown on the tiles, the others also count).
 - Timing: `ROUND_SECONDS`, `HINT_EVERY`, `PAUSE_SECONDS` at the top of the script in `public/index.html`.
+
+## If the badge says "Not LIVE yet", "sign server limit" or "blocked"
+TikTok blocks or rate-limits many cloud server IPs (Render included). The fix is a free signing key:
+1. Go to eulerstream.com, sign up (free), copy your API key.
+2. On Render → your service → Environment → Add: key `SIGN_API_KEY`, value = the key → Save (it redeploys).
+3. Also double-check the username has no @ and the account is actually LIVE when you press Start.
+Render → Logs shows the raw error from TikTok if it still fails.
 
 ## Notes
 - The free Render plan sleeps after 15 minutes without visitors. The first open after that takes
