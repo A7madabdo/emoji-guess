@@ -528,7 +528,7 @@ function isCorrect(comment) {
     c === a || tight === a.replace(/ /g, '') || (' ' + c + ' ').includes(' ' + a + ' '));
 }
 
-const CAT_AR = { 'Movie': 'فيلم', 'Song': 'أغنية', 'Saying': 'مثل إنجليزي', 'Brand': 'ماركة', 'Pinoy food': 'أكل فلبيني', 'Pinoy place': 'مكان فلبيني', 'Pinoy word': 'كلمة فلبينية', 'مثل عربي': 'Arabic proverb' };
+const CAT_AR = { 'Movie': 'فيلم', 'Song': 'أغنية', 'Saying': 'مثل', 'Silly': 'خفيف', 'Animal': 'حيوان', 'Brand': 'ماركة', 'Pinoy food': 'أكل فلبيني', 'Pinoy place': 'مكان فلبيني', 'Pinoy word': 'كلمة فلبينية' };
 const catLabel = (c) => c && CAT_AR[c] ? c + ' · ' + CAT_AR[c] : c;
 
 // ---------- rounds ----------

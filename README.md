@@ -41,7 +41,7 @@ Sound effects and a background music loop were generated with ElevenLabs. Drop t
 built-in synthesized sounds. 🔊 button (or M key) mutes everything.
 
 ## Puzzles
-90 puzzles in `public/puzzles.js`: movies, songs, English sayings, Arabic proverbs, Filipino food,
+90 puzzles in `public/puzzles.js`: movies, songs, sayings, silly everyday things, animals, Filipino food,
 places and words, and brands. Each has a category shown on screen, and 🔥 hard ones pay double.
 Most accept answers in English, Arabic or Filipino.
 
