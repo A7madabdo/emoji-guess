@@ -207,22 +207,22 @@
   .message.win { background: var(--mint); color: var(--ink); font-size: 1.1rem; border: 3px solid var(--ink); animation: slam 0.5s cubic-bezier(.2,1.5,.4,1); }
   .message.missed { background: var(--pink); border: 3px solid var(--ink); }
 
-  /* compact leaderboard row */
-  .podium { display: flex; justify-content: center; gap: 6px; }
-  .step {
-    display: flex; align-items: center; gap: 5px; min-width: 0; max-width: 34%;
-    padding: 2px 10px 2px 6px; border-radius: 999px;
-    border: 3px solid var(--ink); color: var(--ink); font-size: 0.85rem; line-height: 1.2;
+  /* podium */
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 74px; }
+  .step { flex: 1; max-width: 110px; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+  .step .who { font-size: 0.85rem; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .block {
+    width: 100%; display: grid; place-items: center; gap: 0;
+    border: 3px solid var(--ink); border-radius: 8px 8px 0 0; color: var(--ink);
+    font-size: 0.95rem; line-height: 1.1; padding-top: 2px;
   }
-  .step .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .step .pts { font-variant-numeric: tabular-nums; }
-  .step.first { background: var(--sun); }
-  .step.second { background: var(--silver); }
-  .step.third { background: var(--bronze); }
-  .step.first::before { content: '👑'; }
-  .step.second::before { content: '🥈'; }
-  .step.third::before { content: '🥉'; }
-  .step.empty { background: var(--violet-deep); color: var(--white); opacity: 0.7; font-weight: 600; }
+  .step .block small { font-size: 0.7rem; }
+  .step.first .block { height: 46px; background: var(--sun); }
+  .step.second .block { height: 34px; background: var(--silver); }
+  .step.third .block { height: 26px; background: var(--bronze); }
+  .step.first .who::before { content: '👑 '; }
+  .step.empty .who { opacity: 0.55; font-weight: 600; }
+  .step.empty .block { background: var(--violet-deep); color: var(--white); opacity: 0.8; }
 
   /* zone kept clear for TikTok's own comment overlay (bottom-left of the screen) */
   .chat-zone {
@@ -789,21 +789,21 @@ function saveScores() {
 }
 function renderPodium() {
   const top = Object.values(scores).sort((a, b) => b.pts - a.pts).slice(0, 3);
-  const order = [[0, 'first'], [1, 'second'], [2, 'third']];
-  $('podium').replaceChildren(...order.map(([i, cls]) => {
+  const order = [[1, 'second', '2nd'], [0, 'first', '1st'], [2, 'third', '3rd']];
+  $('podium').replaceChildren(...order.map(([i, cls, label]) => {
     const s = top[i];
     const step = document.createElement('div');
     step.className = 'step ' + cls + (s ? '' : ' empty');
     const who = document.createElement('span');
     who.className = 'who';
-    who.textContent = s ? s.name : 'open';
-    step.append(who);
-    if (s) {
-      const pts = document.createElement('span');
-      pts.className = 'pts';
-      pts.textContent = s.pts;
-      step.append(pts);
-    }
+    who.textContent = s ? s.name : 'Who\'s next?';
+    const block = document.createElement('div');
+    block.className = 'block';
+    block.textContent = s ? s.pts : '';
+    const small = document.createElement('small');
+    small.textContent = label;
+    block.append(small);
+    step.append(who, block);
     return step;
   }));
 }
