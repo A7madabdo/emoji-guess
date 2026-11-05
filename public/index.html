@@ -109,12 +109,24 @@
   }
   .title .ar { display: block; font-size: 1rem; color: var(--violet-deep); }
   .cam .badge { top: calc(64px + env(safe-area-inset-top)); }
+  .cheat {
+    position: absolute; left: 50%; bottom: 12px; z-index: 1;
+    transform: translateX(-50%) rotate(1.5deg);
+    padding: 3px 14px; border-radius: 999px; white-space: nowrap; text-align: center;
+    background: var(--pink); color: var(--white); border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    font-size: 0.95rem; line-height: 1.25;
+    animation: wiggle 2.4s ease-in-out infinite;
+  }
+  .cheat .ar { display: block; font-size: 0.85rem; }
+  .controls { right: auto; left: 10px; bottom: 62px; z-index: 2; flex-direction: column; }
+  .cheat { pointer-events: none; }
   .cam .flip {
     position: absolute; right: 12px; top: calc(8px + env(safe-area-inset-top));
     width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink);
     background: var(--white); font-size: 1.1rem; cursor: pointer;
   }
-  .controls { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 8px; opacity: 0.55; transition: opacity 0.2s; }
+  .controls { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; opacity: 0.45; transition: opacity 0.2s; }
   .controls:hover, .controls:focus-within { opacity: 1; }
   .controls button {
     font: inherit; font-size: 0.85rem; width: 36px; height: 36px; border-radius: 50%;
@@ -312,6 +324,7 @@
   @keyframes slam { from { transform: scale(1.6) rotate(6deg); opacity: 0; } to { transform: scale(1) rotate(-3deg); opacity: 1; } }
   @keyframes slamIn { from { transform: scale(2) rotate(8deg); opacity: 0; } to { transform: scale(1) rotate(-2deg); opacity: 1; } }
   @keyframes bump { 50% { transform: rotate(-6deg) scale(1.25); } }
+  @keyframes wiggle { 0%, 100% { transform: translateX(-50%) rotate(1.5deg); } 50% { transform: translateX(-50%) rotate(-1.5deg) scale(1.04); } }
   @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
   @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
   @media (prefers-reduced-motion: reduce) {
@@ -343,6 +356,7 @@
     <video id="video" autoplay playsinline muted></video>
     <div class="cam-off" id="camOff">Camera is off.<br>Tap the camera button to turn it on.</div>
     <div class="title">🤔 Emoji Guess<span class="ar">خمّن الإيموجي</span></div>
+    <div class="cheat">🌹 Rose = cheat! reveals a letter<span class="ar">وردة = غش! تكشف لك حرف</span></div>
     <span class="badge" id="status">Not connected</span>
     <button class="flip" id="flipBtn" aria-label="Switch camera">🔄</button>
     <div class="controls" id="controls">
