@@ -102,13 +102,13 @@
   .title {
     position: absolute; left: 50%; top: calc(14px + env(safe-area-inset-top)); z-index: 1;
     transform: translateX(-50%) rotate(-2deg);
-    padding: 4px 18px 6px; border-radius: 16px; text-align: center; white-space: nowrap;
-    background: var(--sun); color: var(--ink); border: 4px solid var(--ink);
-    box-shadow: 5px 5px 0 var(--ink);
-    font-size: 1.25rem; line-height: 1.1;
+    padding: 2px 12px 3px; border-radius: 12px; text-align: center; white-space: nowrap;
+    background: var(--sun); color: var(--ink); border: 3px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    font-size: 0.95rem; line-height: 1.1;
   }
-  .title .ar { display: block; font-size: 1rem; color: var(--violet-deep); }
-  .cam .badge { top: calc(64px + env(safe-area-inset-top)); }
+  .title .ar { display: inline; font-size: 0.85rem; color: var(--violet-deep); margin-inline-start: 6px; }
+  .cam .badge { top: calc(44px + env(safe-area-inset-top)); }
   .cheat {
     position: absolute; left: 50%; bottom: 12px; z-index: 1;
     transform: translateX(-50%) rotate(1.5deg);
@@ -346,7 +346,7 @@
   <div class="cam off" id="cam">
     <video id="video" autoplay playsinline muted></video>
     <div class="cam-off" id="camOff">Camera is off.<br>Tap the camera button to turn it on.</div>
-    <div class="title">🤔 Emoji Guess<span class="ar">خمّن الإيموجي</span></div>
+    <div class="title">🤔 Emoji Guess · <span class="ar">خمّن الإيموجي</span></div>
     <div class="cheat" id="cheat">🌹 Rose = cheat! reveals a letter<span class="ar">وردة = غش! تكشف لك حرف</span></div>
     <span class="badge" id="status">Not connected</span>
     <button class="flip" id="flipBtn" aria-label="Switch camera">🔄</button>
