@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#4A22F0">
+<title>Emoji Guess</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --violet: #4A22F0;
+    --violet-deep: #3414B8;
+    --ink: #14092E;
+    --pink: #FF4FA3;
+    --sun: #FFD23F;
+    --mint: #2EF2B8;
+    --white: #FFFFFF;
+    --silver: #C9CDE3;
+    --bronze: #E2955A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--violet);
+    color: var(--white);
+    font-family: 'Baloo Bhaijaan 2', 'Trebuchet MS', system-ui, sans-serif;
+    font-weight: 800;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  :focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+  /* ---------- setup screen ---------- */
+  .setup {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; justify-content: center; gap: 16px;
+    padding: 28px 24px;
+    padding-top: calc(28px + env(safe-area-inset-top));
+    background: var(--violet);
+    background-image: radial-gradient(circle at 85% 10%, var(--pink) 0 90px, transparent 91px),
+                      radial-gradient(circle at 10% 92%, var(--sun) 0 70px, transparent 71px);
+  }
+  .setup.hidden { display: none; }
+  .setup .logo {
+    align-self: flex-start;
+    font-size: 3rem; line-height: 1; padding: 10px 16px;
+    background: var(--white); border: 4px solid var(--ink); border-radius: 18px;
+    box-shadow: 6px 6px 0 var(--ink); transform: rotate(-4deg);
+  }
+  .setup h1 { font-size: 2.4rem; line-height: 1.05; margin-top: 8px; text-shadow: 4px 4px 0 var(--ink); }
+  .setup p { font-size: 1.05rem; font-weight: 600; line-height: 1.4; }
+  .setup label { font-size: 1rem; }
+  .setup input {
+    font: inherit; font-size: 1.3rem;
+    padding: 12px 16px; border-radius: 14px;
+    border: 4px solid var(--ink); background: var(--white); color: var(--ink);
+    width: 100%; box-shadow: 5px 5px 0 var(--ink);
+  }
+  .setup input:focus { border-color: var(--sun); outline: none; }
+  .btn {
+    font: inherit; font-size: 1.3rem;
+    padding: 14px; border: 4px solid var(--ink); border-radius: 14px;
+    background: var(--sun); color: var(--ink); cursor: pointer;
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
+  .btn.quiet { background: var(--white); font-size: 1.05rem; padding: 10px; }
+  .setup .err { color: var(--sun); min-height: 1.4em; font-weight: 600; }
+  .setup .steps { font-size: 0.95rem; font-weight: 600; line-height: 1.5; }
+  .setup .steps b { color: var(--sun); }
+
+  /* ---------- stream layout ---------- */
+  .screen { height: 100%; display: flex; flex-direction: column; }
+  .cam { position: relative; flex: 0 0 44%; background: var(--ink); overflow: hidden; }
+  .cam video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  .cam .cam-off {
+    position: absolute; inset: 0; display: none;
+    place-items: center; text-align: center; padding: 20px;
+    font-size: 1.05rem; font-weight: 600; line-height: 1.4;
+  }
+  .cam.off .cam-off { display: grid; }
+  .cam.off video { display: none; }
+  .cam .badge {
+    position: absolute; left: 12px; top: calc(10px + env(safe-area-inset-top));
+    font-size: 0.85rem; padding: 3px 12px; border-radius: 999px;
+    background: var(--white); color: var(--ink); border: 3px solid var(--ink);
+  }
+  .cam .badge.live { background: var(--pink); color: var(--white); }
+  .cam .badge.live::before {
+    content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--white); margin-inline-end: 6px; vertical-align: middle;
+    animation: blink 1s steps(2) infinite;
+  }
+  .cam .flip {
+    position: absolute; right: 12px; top: calc(8px + env(safe-area-inset-top));
+    width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--ink);
+    background: var(--white); font-size: 1.1rem; cursor: pointer;
+  }
+  .controls { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 8px; opacity: 0.55; transition: opacity 0.2s; }
+  .controls:hover, .controls:focus-within { opacity: 1; }
+  .controls button {
+    font: inherit; font-size: 0.85rem; width: 36px; height: 36px; border-radius: 50%;
+    border: 3px solid var(--ink); background: var(--white); color: var(--ink); cursor: pointer;
+  }
+
+  /* zig-zag edge between camera and game */
+  .zig {
+    flex: 0 0 12px; margin-top: -12px; position: relative; z-index: 1;
+    background: linear-gradient(135deg, var(--violet) 25%, transparent 25%) 0 0 / 16px 16px,
+                linear-gradient(225deg, var(--violet) 25%, transparent 25%) 0 0 / 16px 16px;
+  }
+
+  .game {
+    flex: 1; min-height: 0; position: relative;
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 6px 14px calc(10px + env(safe-area-inset-bottom));
+    background-image: repeating-linear-gradient(135deg, var(--violet-deep) 0 2px, transparent 2px 14px);
+  }
+
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .round {
+    font-size: 1.05rem; padding: 2px 14px; border-radius: 999px;
+    background: var(--ink); color: var(--sun); border: 3px solid var(--ink);
+  }
+  .ring { position: relative; width: 54px; height: 54px; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 7; stroke-linecap: round; }
+  .ring .track { stroke: var(--ink); }
+  .ring .arc { stroke: var(--mint); transition: stroke-dashoffset 1s linear, stroke 0.3s; }
+  .ring.low .arc { stroke: var(--pink); }
+  .ring .n {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-size: 1.25rem; font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .ring.low .n { animation: shake 1s infinite; }
+
+  .stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; }
+  .sticker {
+    position: relative;
+    padding: 6px 22px;
+    background: var(--white); border: 4px solid var(--ink); border-radius: 22px;
+    box-shadow: 8px 8px 0 var(--ink);
+    transform: rotate(-3deg);
+  }
+  .sticker::after {
+    content: '?'; position: absolute; right: -16px; top: -18px;
+    width: 40px; height: 40px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--sun); color: var(--ink); border: 4px solid var(--ink);
+    font-size: 1.5rem; line-height: 1; transform: rotate(12deg);
+  }
+  .sticker.win::after { content: '✓'; background: var(--mint); }
+  .sticker.missed::after { content: '✕'; background: var(--pink); color: var(--white); }
+  .sticker.enter { animation: slam 0.5s cubic-bezier(.2,1.5,.4,1); }
+  .stake {
+    position: absolute; left: -16px; top: -14px; z-index: 1;
+    padding: 2px 12px; border-radius: 999px;
+    background: var(--pink); color: var(--white); border: 3px solid var(--ink);
+    font-size: 0.95rem; line-height: 1.3; transform: rotate(-6deg);
+    font-variant-numeric: tabular-nums; transition: background 0.3s;
+  }
+  .stake.bump { animation: bump 0.3s ease-out; }
+  .stake.low { background: var(--ink); color: var(--sun); }
+  .clue { font-size: clamp(3rem, 18vw, 5.4rem); line-height: 1.15; letter-spacing: 0.06em; white-space: nowrap; }
+
+  .tiles { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; min-height: 2.6rem; }
+  .tile {
+    width: 2rem; height: 2.5rem;
+    display: grid; place-items: center;
+    background: var(--white); color: var(--ink);
+    border: 3px solid var(--ink); border-radius: 7px;
+    box-shadow: 3px 3px 0 var(--ink);
+    font-size: 1.4rem; line-height: 1;
+  }
+  .tile .ch { visibility: hidden; }
+  .tile.shown .ch { visibility: visible; }
+  .tile.hint { background: var(--sun); animation: pop 0.35s ease-out; }
+  .tiles.win .tile { background: var(--mint); }
+  .tiles.missed .tile { background: var(--pink); color: var(--white); }
+  .tiles.win .tile, .tiles.missed .tile { animation: pop 0.35s ease-out backwards; }
+  .gap { width: 0.6rem; }
+
+  .message {
+    text-align: center; font-size: 1.05rem; line-height: 1.2; min-height: 1.5em;
+    padding: 2px 10px; border-radius: 10px;
+  }
+  .message.prompt { animation: pulse 1.6s ease-in-out infinite; }
+  .message.win { background: var(--mint); color: var(--ink); font-size: 1.3rem; border: 3px solid var(--ink); animation: slam 0.5s cubic-bezier(.2,1.5,.4,1); }
+  .message.missed { background: var(--pink); border: 3px solid var(--ink); }
+
+  /* podium */
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 74px; }
+  .step { flex: 1; max-width: 110px; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+  .step .who { font-size: 0.85rem; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .block {
+    width: 100%; display: grid; place-items: center; gap: 0;
+    border: 3px solid var(--ink); border-radius: 8px 8px 0 0; color: var(--ink);
+    font-size: 0.95rem; line-height: 1.1; padding-top: 2px;
+  }
+  .step .block small { font-size: 0.7rem; }
+  .step.first .block { height: 46px; background: var(--sun); }
+  .step.second .block { height: 34px; background: var(--silver); }
+  .step.third .block { height: 26px; background: var(--bronze); }
+  .step.first .who::before { content: '👑 '; }
+  .step.empty .who { opacity: 0.55; font-weight: 600; }
+  .step.empty .block { background: var(--violet-deep); color: var(--white); opacity: 0.8; }
+
+  .feed { list-style: none; font-size: 0.85rem; font-weight: 600; line-height: 1.3; min-height: 2.6em; }
+  .feed li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.6; }
+  .feed li:last-child { opacity: 1; }
+  .feed b { color: var(--sun); font-weight: 800; }
+
+  .takeover {
+    position: fixed; inset: 0; z-index: 3; display: none;
+    place-items: center; text-align: center; padding: 24px;
+    background: rgba(20, 9, 46, 0.72);
+  }
+  .takeover.show { display: grid; }
+  .takeover .card {
+    width: min(100%, 360px);
+    padding: 22px 20px 26px;
+    background: var(--sun); color: var(--ink);
+    border: 5px solid var(--ink); border-radius: 26px;
+    box-shadow: 10px 10px 0 var(--ink);
+    transform: rotate(-2deg);
+    animation: slamIn 0.55s cubic-bezier(.2,1.5,.4,1);
+  }
+  .takeover .trophy { font-size: 3.4rem; line-height: 1; }
+  .takeover .name {
+    font-size: clamp(1.8rem, 9vw, 2.6rem); line-height: 1.05; margin-top: 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .takeover .sub { font-size: 1.1rem; font-weight: 600; margin-top: 2px; }
+  .takeover .pts {
+    display: inline-block; margin-top: 12px; padding: 4px 18px;
+    background: var(--ink); color: var(--mint); border-radius: 999px;
+    font-size: 1.6rem; line-height: 1.3;
+  }
+  .takeover .streak {
+    display: none; margin: 10px auto 0; padding: 3px 14px; border-radius: 999px; width: fit-content;
+    background: var(--pink); color: var(--white); border: 3px solid var(--ink);
+    font-size: 1rem; animation: pulse 0.8s ease-in-out infinite;
+  }
+  .takeover .streak.on { display: block; }
+
+  canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
+
+  .test {
+    position: fixed; inset: auto 0 0 0; z-index: 5; padding: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    background: var(--white); color: var(--ink); border-top: 4px solid var(--ink);
+    display: none; gap: 6px; flex-wrap: wrap;
+  }
+  .test.open { display: flex; }
+  .test input { font: inherit; font-weight: 600; padding: 6px 10px; border: 3px solid var(--ink); border-radius: 8px; min-width: 0; }
+  .test input#testName { width: 6.5rem; }
+  .test input#testMsg { flex: 1; }
+  .test button { font: inherit; padding: 6px 12px; border: 3px solid var(--ink); border-radius: 8px; background: var(--sun); color: var(--ink); }
+
+  @keyframes blink { to { opacity: 0; } }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes slam { from { transform: scale(1.6) rotate(6deg); opacity: 0; } to { transform: scale(1) rotate(-3deg); opacity: 1; } }
+  @keyframes slamIn { from { transform: scale(2) rotate(8deg); opacity: 0; } to { transform: scale(1) rotate(-2deg); opacity: 1; } }
+  @keyframes bump { 50% { transform: rotate(-6deg) scale(1.25); } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    canvas.confetti { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<section class="setup" id="setup">
+  <div class="logo">🤔🎉</div>
+  <h1>Emoji Guess</h1>
+  <p>Viewers guess the emoji puzzle in the comments. First correct guess wins points.</p>
+  <label for="username">Your TikTok username</label>
+  <input id="username" placeholder="username (without @)" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text">
+  <div class="err" id="setupErr"></div>
+  <button class="btn" id="startBtn">Start game</button>
+  <button class="btn quiet" id="testBtn">Try it without TikTok</button>
+  <p class="steps">
+    <b>1.</b> Tap Start and allow the camera.<br>
+    <b>2.</b> In TikTok, tap LIVE and choose <b>Screen share</b> (sometimes called Mobile gaming).<br>
+    <b>3.</b> Come back to this page. Viewers now see you and the game.
+  </p>
+</section>
+
+<main class="screen">
+  <div class="cam off" id="cam">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="cam-off" id="camOff">Camera is off.<br>Tap the camera button to turn it on.</div>
+    <span class="badge" id="status">Not connected</span>
+    <button class="flip" id="flipBtn" aria-label="Switch camera">🔄</button>
+    <div class="controls" id="controls">
+      <button id="camBtn" aria-label="Camera on or off">📷</button>
+      <button id="skipBtn" aria-label="Skip puzzle">⏭</button>
+      <button id="testToggle" aria-label="Test comments">T</button>
+    </div>
+  </div>
+  <div class="zig" aria-hidden="true"></div>
+
+  <div class="game">
+    <div class="top">
+      <span class="round" id="round">Round 1</span>
+      <div class="ring" id="ring">
+        <svg viewBox="0 0 60 60" aria-hidden="true">
+          <circle class="track" cx="30" cy="30" r="24"></circle>
+          <circle class="arc" id="arc" cx="30" cy="30" r="24"></circle>
+        </svg>
+        <span class="n" id="seconds">45</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="sticker" id="sticker"><div class="clue" id="clue"></div><span class="stake" id="stake">14 pts</span></div>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+    <div class="message prompt" id="message">💬 Type your guess in the comments</div>
+
+    <div class="podium" id="podium"></div>
+    <ul class="feed" id="feed"></ul>
+  </div>
+</main>
+
+<div class="takeover" id="takeover" aria-live="polite">
+  <div class="card">
+    <div class="trophy">🏆</div>
+    <div class="name" id="winName"></div>
+    <div class="sub">got it first!</div>
+    <div class="pts" id="winPts"></div>
+    <div class="streak" id="winStreak"></div>
+  </div>
+</div>
+<canvas class="confetti" id="confetti"></canvas>
+
+<form class="test" id="test">
+  <input id="testName" value="tester" aria-label="Viewer name">
+  <input id="testMsg" placeholder="Comment as a viewer" aria-label="Comment">
+  <button type="submit">Send</button>
+  <button type="button" id="testClose" aria-label="Close test panel">✕</button>
+</form>
+
+<script src="puzzles.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const ROUND_SECONDS = 45;   // time per puzzle
+const HINT_EVERY = 12;      // reveal a letter every N seconds
+const PAUSE_SECONDS = 6;    // pause after each round
+const SCORE_KEY = 'emoji-guess-scores';
+const NAME_KEY = 'emoji-guess-username';
+const PROMPT = '💬 Type your guess in the comments';
+
+const $ = (id) => document.getElementById(id);
+let queue = [];
+let round = 0;
+let current = null;
+let timeLeft = 0;
+let phase = 'idle';
+let tick = null;
+let pauseTimer = null;
+let revealed = new Set();
+let scores = loadScores();
+const feed = [];
+let stream = null;
+let facing = 'user';
+let socket = null;
+let currentUser = '';
+let lastWinner = null;
+let streak = 0;
+const pointsNow = () => 5 + Math.ceil(timeLeft / 5);
+
+const ARC_LEN = 2 * Math.PI * 24;
+$('arc').style.strokeDasharray = ARC_LEN;
+
+// ---------- text matching (English + Arabic friendly) ----------
+function normalize(text) {
+  return String(text).toLowerCase()
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+    .replace(/[ً-ٰٟـ]/g, '')
+    .replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+function isCorrect(comment) {
+  const c = normalize(comment);
+  if (!c) return false;
+  const tight = c.replace(/ /g, '');
+  return current.accept.some((a) =>
+    c === a || tight === a.replace(/ /g, '') || (' ' + c + ' ').includes(' ' + a + ' '));
+}
+
+// ---------- rounds ----------
+function shuffle(list) {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+function nextRound() {
+  clearInterval(tick);
+  clearTimeout(pauseTimer);
+  if (!queue.length) queue = shuffle(window.PUZZLES.slice());
+  const p = queue.pop();
+  current = {
+    clue: p.clue,
+    display: p.answers[0].toUpperCase(),
+    accept: p.answers.map(normalize).filter(Boolean),
+  };
+  round++;
+  revealed = new Set();
+  timeLeft = ROUND_SECONDS;
+  phase = 'playing';
+
+  $('takeover').classList.remove('show');
+  $('round').textContent = 'Round ' + round;
+  $('clue').textContent = current.clue;
+  const st = $('sticker');
+  st.className = 'sticker'; void st.offsetWidth; st.classList.add('enter');
+  setMessage(PROMPT, 'prompt');
+  buildTiles();
+  updateTimer();
+  tick = setInterval(onTick, 1000);
+}
+
+function onTick() {
+  timeLeft--;
+  updateTimer();
+  if (timeLeft <= 0) return endRound(null);
+  if ((ROUND_SECONDS - timeLeft) % HINT_EVERY === 0) revealHint();
+}
+
+function updateTimer() {
+  const t = Math.max(timeLeft, 0);
+  $('seconds').textContent = t;
+  $('arc').style.strokeDashoffset = ARC_LEN * (1 - t / ROUND_SECONDS);
+  $('ring').classList.toggle('low', t <= 10);
+  const stake = $('stake');
+  const pts = pointsNow() + ' pts';
+  if (stake.textContent !== pts) {
+    stake.textContent = pts;
+    stake.classList.remove('bump'); void stake.offsetWidth; stake.classList.add('bump');
+  }
+  stake.classList.toggle('low', t <= 10);
+}
+
+function buildTiles() {
+  const box = $('tiles');
+  box.className = 'tiles';
+  box.dir = /[؀-ۿ]/.test(current.display) ? 'rtl' : 'ltr';
+  box.replaceChildren();
+  Array.from(current.display).forEach((ch, i) => {
+    if (ch === ' ') {
+      const gap = document.createElement('span');
+      gap.className = 'gap';
+      box.append(gap);
+      return;
+    }
+    const tile = document.createElement('span');
+    tile.className = 'tile';
+    tile.dataset.i = i;
+    const inner = document.createElement('span');
+    inner.className = 'ch';
+    inner.textContent = ch;
+    tile.append(inner);
+    box.append(tile);
+  });
+}
+
+function revealHint() {
+  const tiles = [...$('tiles').querySelectorAll('.tile')];
+  const max = Math.floor(tiles.length / 2);
+  const hidden = tiles.filter((t) => !t.classList.contains('shown'));
+  if (revealed.size >= max || !hidden.length) return;
+  const pick = hidden[Math.floor(Math.random() * hidden.length)];
+  revealed.add(pick.dataset.i);
+  pick.classList.add('shown', 'hint');
+}
+
+function endRound(winner) {
+  if (phase !== 'playing') return;
+  phase = 'reveal';
+  clearInterval(tick);
+  const box = $('tiles');
+  box.querySelectorAll('.tile').forEach((t, n) => {
+    t.classList.add('shown');
+    t.style.animationDelay = (n * 0.05) + 's';
+  });
+  if (winner) {
+    const pts = pointsNow();
+    const entry = scores[winner.user] || { name: winner.nickname, pts: 0 };
+    entry.name = winner.nickname;
+    entry.pts += pts;
+    scores[winner.user] = entry;
+    saveScores();
+    renderPodium();
+    box.classList.add('win');
+    $('sticker').classList.add('win');
+    setMessage('🏆 ' + winner.nickname + ' got it! +' + pts, 'win');
+    streak = winner.user === lastWinner ? streak + 1 : 1;
+    lastWinner = winner.user;
+    showTakeover(winner.nickname, pts, streak);
+    confetti();
+  } else {
+    box.classList.add('missed');
+    $('sticker').classList.add('missed');
+    setMessage('Nobody got it. Next one coming!', 'missed');
+    lastWinner = null; streak = 0;
+  }
+  pauseTimer = setTimeout(nextRound, PAUSE_SECONDS * 1000);
+}
+
+function showTakeover(name, pts, n) {
+  $('winName').textContent = name;
+  $('winPts').textContent = '+' + pts + ' pts';
+  const st = $('winStreak');
+  st.textContent = '🔥 ' + n + ' in a row';
+  st.classList.toggle('on', n >= 2);
+  const t = $('takeover');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), (PAUSE_SECONDS - 1.5) * 1000);
+}
+
+function setMessage(text, kind) {
+  const m = $('message');
+  m.textContent = text;
+  m.className = 'message' + (kind ? ' ' + kind : '');
+}
+
+// ---------- confetti ----------
+const bits = [];
+let confettiRunning = false;
+function confetti() {
+  const colors = ['#FFD23F', '#FF4FA3', '#2EF2B8', '#FFFFFF'];
+  for (let i = 0; i < 90; i++) {
+    bits.push({
+      x: innerWidth / 2 + (Math.random() - 0.5) * 80,
+      y: innerHeight * 0.55,
+      vx: (Math.random() - 0.5) * 14,
+      vy: -Math.random() * 14 - 4,
+      r: Math.random() * 6 + 3,
+      c: colors[Math.floor(Math.random() * colors.length)],
+      a: Math.random() * Math.PI,
+      life: 110,
+    });
+  }
+  if (confettiRunning) return;
+  confettiRunning = true;
+  const cv = $('confetti');
+  const ctx = cv.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.round(innerWidth * dpr); cv.height = Math.round(innerHeight * dpr);
+  (function draw() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (let i = bits.length - 1; i >= 0; i--) {
+      const b = bits[i];
+      b.vy += 0.45; b.x += b.vx; b.y += b.vy; b.a += 0.2;
+      if (--b.life <= 0 || b.y > innerHeight + 20) { bits.splice(i, 1); continue; }
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a);
+      ctx.fillStyle = b.c; ctx.fillRect(-b.r, -b.r / 2, b.r * 2, b.r);
+      ctx.restore();
+    }
+    if (bits.length) requestAnimationFrame(draw);
+    else { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); confettiRunning = false; }
+  })();
+}
+
+// ---------- comments ----------
+function handleComment(c) {
+  if (!c || !c.comment) return;
+  feed.push(c);
+  if (feed.length > 2) feed.shift();
+  renderFeed();
+  if (phase === 'playing' && isCorrect(c.comment)) endRound(c);
+}
+
+function renderFeed() {
+  $('feed').replaceChildren(...feed.map((c) => {
+    const li = document.createElement('li');
+    const b = document.createElement('b');
+    b.textContent = c.nickname + ': ';
+    li.append(b, document.createTextNode(c.comment));
+    return li;
+  }));
+}
+
+// ---------- podium ----------
+function loadScores() {
+  try { return JSON.parse(localStorage.getItem(SCORE_KEY)) || {}; } catch { return {}; }
+}
+function saveScores() {
+  try { localStorage.setItem(SCORE_KEY, JSON.stringify(scores)); } catch {}
+}
+function renderPodium() {
+  const top = Object.values(scores).sort((a, b) => b.pts - a.pts).slice(0, 3);
+  const order = [[1, 'second', '2nd'], [0, 'first', '1st'], [2, 'third', '3rd']];
+  $('podium').replaceChildren(...order.map(([i, cls, label]) => {
+    const s = top[i];
+    const step = document.createElement('div');
+    step.className = 'step ' + cls + (s ? '' : ' empty');
+    const who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = s ? s.name : 'Who\'s next?';
+    const block = document.createElement('div');
+    block.className = 'block';
+    block.textContent = s ? s.pts : '';
+    const small = document.createElement('small');
+    small.textContent = label;
+    block.append(small);
+    step.append(who, block);
+    return step;
+  }));
+}
+
+// ---------- camera ----------
+async function startCamera() {
+  stopCamera();
+  const cam = $('cam');
+  if (!navigator.mediaDevices?.getUserMedia) {
+    $('camOff').textContent = 'This browser cannot use the camera. Open the page in Safari or Chrome.';
+    return;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing, width: { ideal: 720 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    const v = $('video');
+    v.srcObject = stream;
+    v.style.transform = facing === 'user' ? 'scaleX(-1)' : 'none';
+    cam.classList.remove('off');
+  } catch (err) {
+    cam.classList.add('off');
+    $('camOff').textContent = 'Camera not allowed. Allow the camera in your browser settings, then tap the camera button.';
+  }
+}
+function stopCamera() {
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  stream = null;
+  $('cam').classList.add('off');
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && stream && !stream.active) startCamera();
+});
+
+// ---------- live connection ----------
+function connectLive(username) {
+  if (!window.io) return;
+  if (!socket) {
+    socket = io();
+    socket.on('comment', handleComment);
+    socket.on('status', (s) => {
+      const el = $('status');
+      if (s.error) el.textContent = s.error;
+      else el.textContent = s.live ? 'LIVE' : (s.username ? 'Waiting for your LIVE…' : 'Test mode');
+      el.classList.toggle('live', !!s.live);
+    });
+    socket.on('connect', () => socket.emit('watch', currentUser));
+  }
+  currentUser = username;
+  if (socket.connected) socket.emit('watch', username);
+}
+
+// ---------- setup + controls ----------
+function begin(username) {
+  $('setup').classList.add('hidden');
+  connectLive(username);
+  if (!username) $('status').textContent = 'Test mode';
+  startCamera();
+  nextRound();
+}
+
+try { $('username').value = localStorage.getItem(NAME_KEY) || ''; } catch {}
+
+$('startBtn').addEventListener('click', () => {
+  const name = $('username').value.trim().replace(/^@/, '');
+  if (!name) { $('setupErr').textContent = 'Enter the TikTok username that will go LIVE.'; return; }
+  try { localStorage.setItem(NAME_KEY, name); } catch {}
+  begin(name);
+});
+$('testBtn').addEventListener('click', () => { begin(''); $('test').classList.add('open'); });
+$('username').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('startBtn').click(); });
+
+$('camBtn').addEventListener('click', () => (stream ? stopCamera() : startCamera()));
+$('flipBtn').addEventListener('click', () => { facing = facing === 'user' ? 'environment' : 'user'; startCamera(); });
+$('skipBtn').addEventListener('click', nextRound);
+$('testClose').addEventListener('click', () => $('test').classList.remove('open'));
+$('testToggle').addEventListener('click', () => {
+  $('test').classList.toggle('open');
+  if ($('test').classList.contains('open')) $('testMsg').focus();
+});
+
+$('test').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const msg = $('testMsg').value.trim();
+  if (!msg) return;
+  const name = $('testName').value.trim() || 'tester';
+  handleComment({ user: name, nickname: name, comment: msg });
+  $('testMsg').value = '';
+});
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  if (k === 't') $('testToggle').click();
+  if (k === 'n') nextRound();
+  if (k === 'r' && confirm('Reset the leaderboard?')) { scores = {}; saveScores(); renderPodium(); }
+});
+
+renderPodium();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "emoji-guess-phone",
+  "version": "1.0.0",
+  "description": "Comment-powered emoji guessing game for TikTok LIVE",
+  "type": "module",
+  "main": "server.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "tiktok-live-connector": "^2.0.0"
+  }
+}
