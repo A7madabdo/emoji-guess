@@ -35,6 +35,12 @@ Tip: turn off auto-lock on the phone so the screen stays on. Keep the phone char
 - ⏭ skip the current puzzle
 - T open the test panel to type comments yourself (good for trying it before going live)
 
+## Gifts = cheats
+Any gift reveals a letter for everyone (a toast shows who sent it). Bigger gifts reveal more letters
+(1 extra per 5 coins, max 3). Whoever gifted in a round gets **2× points** if they win it.
+Change `COINS_PER_LETTER`, `MAX_GIFT_LETTERS`, `BOOST_MULTIPLIER` at the top of the script in `public/index.html`.
+The test panel has a 🎁 button to try it.
+
 ## Customize
 - Puzzles: edit `public/puzzles.js` (the first answer is shown on the tiles, the others also count).
 - Timing: `ROUND_SECONDS`, `HINT_EVERY`, `PAUSE_SECONDS` at the top of the script in `public/index.html`.

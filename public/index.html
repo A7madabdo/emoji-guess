@@ -248,6 +248,24 @@
   }
   .takeover .streak.on { display: block; }
 
+  .gift-toast {
+    position: absolute; left: 50%; top: 42%; z-index: 2;
+    transform: translate(-50%, -50%) rotate(-4deg);
+    padding: 8px 18px; border-radius: 16px;
+    background: var(--pink); color: var(--white); border: 4px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    font-size: 1.1rem; line-height: 1.25; text-align: center; white-space: nowrap;
+    display: none;
+  }
+  .gift-toast.show { display: block; animation: slam 0.5s cubic-bezier(.2,1.5,.4,1); }
+  .gift-toast small { display: block; font-size: 0.85rem; font-weight: 600; }
+  .boost {
+    display: none; margin: 0 auto; padding: 1px 12px; border-radius: 999px; width: fit-content;
+    background: var(--ink); color: var(--sun); font-size: 0.85rem;
+  }
+  .boost.on { display: block; animation: pulse 1.2s ease-in-out infinite; }
+  .tile.gift { background: var(--pink); color: var(--white); animation: pop 0.35s ease-out; }
+
   canvas.confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
 
   .test {
@@ -320,11 +338,13 @@
     </div>
 
     <div class="stage">
+      <div class="gift-toast" id="giftToast"></div>
       <div class="sticker" id="sticker"><div class="clue" id="clue"></div><span class="stake" id="stake">14 pts</span></div>
     </div>
 
     <div class="tiles" id="tiles"></div>
     <div class="message prompt" id="message">💬 Type your guess in the comments</div>
+    <div class="boost" id="boost"></div>
 
     <div class="podium" id="podium"></div>
     <ul class="feed" id="feed"></ul>
@@ -346,6 +366,7 @@
   <input id="testName" value="tester" aria-label="Viewer name">
   <input id="testMsg" placeholder="Comment as a viewer" aria-label="Comment">
   <button type="submit">Send</button>
+  <button type="button" id="testGift">🎁 Gift</button>
   <button type="button" id="testClose" aria-label="Close test panel">✕</button>
 </form>
 
@@ -358,6 +379,10 @@ const PAUSE_SECONDS = 6;    // pause after each round
 const SCORE_KEY = 'emoji-guess-scores';
 const NAME_KEY = 'emoji-guess-username';
 const PROMPT = '💬 Type your guess in the comments';
+// Gifts = cheats. Every gift reveals letters for everyone; the gifter gets double points if they win.
+const COINS_PER_LETTER = 5;    // 1 letter per gift, +1 more for every 5 coins (a Rose is 1 coin)
+const MAX_GIFT_LETTERS = 3;    // most letters one gift can reveal
+const BOOST_MULTIPLIER = 2;
 
 const $ = (id) => document.getElementById(id);
 let queue = [];
@@ -375,6 +400,8 @@ let facing = 'user';
 let socket = null;
 let currentUser = '';
 let lastWinner = null;
+let boosted = new Map(); // user -> nickname, for this round
+let giftToastTimer = null;
 let streak = 0;
 const pointsNow = () => 5 + Math.ceil(timeLeft / 5);
 
@@ -419,6 +446,9 @@ function nextRound() {
   };
   round++;
   revealed = new Set();
+  boosted = new Map();
+  renderBoost();
+  $('giftToast').classList.remove('show');
   timeLeft = ROUND_SECONDS;
   phase = 'playing';
 
@@ -477,14 +507,49 @@ function buildTiles() {
   });
 }
 
-function revealHint() {
+function revealHint(cls = 'hint', force = false) {
   const tiles = [...$('tiles').querySelectorAll('.tile')];
-  const max = Math.floor(tiles.length / 2);
+  const max = force ? tiles.length - 1 : Math.floor(tiles.length / 2);
   const hidden = tiles.filter((t) => !t.classList.contains('shown'));
-  if (revealed.size >= max || !hidden.length) return;
+  if (revealed.size >= max || !hidden.length) return false;
   const pick = hidden[Math.floor(Math.random() * hidden.length)];
   revealed.add(pick.dataset.i);
-  pick.classList.add('shown', 'hint');
+  pick.classList.add('shown', cls);
+  return true;
+}
+
+// ---------- gifts ----------
+function handleGift(g) {
+  if (!g || !g.user) return;
+  const coins = Math.max(1, Number(g.coins) || 1);
+  const want = Math.min(MAX_GIFT_LETTERS, 1 + Math.floor(coins / COINS_PER_LETTER));
+  let got = 0;
+  if (phase === 'playing') {
+    for (let i = 0; i < want; i++) if (revealHint('gift', true)) got++;
+    boosted.set(g.user, g.nickname);
+    renderBoost();
+  }
+  const what = g.count > 1 ? g.count + '× ' + g.giftName : g.giftName;
+  const line = got ? (got === 1 ? '1 letter revealed' : got + ' letters revealed') : 'thank you!';
+  showGiftToast('🎁 ' + g.nickname + ' sent ' + what, line + ' · ' + BOOST_MULTIPLIER + '× points if they win');
+}
+
+function showGiftToast(title, sub) {
+  const t = $('giftToast');
+  t.replaceChildren(document.createTextNode(title));
+  const small = document.createElement('small');
+  small.textContent = sub;
+  t.append(small);
+  t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+  clearTimeout(giftToastTimer);
+  giftToastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function renderBoost() {
+  const el = $('boost');
+  const names = [...boosted.values()];
+  el.classList.toggle('on', names.length > 0);
+  el.textContent = names.length ? '✨ ' + BOOST_MULTIPLIER + '× points: ' + names.slice(0, 3).join(', ') + (names.length > 3 ? ' +' + (names.length - 3) : '') : '';
 }
 
 function endRound(winner) {
@@ -497,7 +562,7 @@ function endRound(winner) {
     t.style.animationDelay = (n * 0.05) + 's';
   });
   if (winner) {
-    const pts = pointsNow();
+    const pts = pointsNow() * (boosted.has(winner.user) ? BOOST_MULTIPLIER : 1);
     const entry = scores[winner.user] || { name: winner.nickname, pts: 0 };
     entry.name = winner.nickname;
     entry.pts += pts;
@@ -661,6 +726,7 @@ function connectLive(username) {
   if (!socket) {
     socket = io();
     socket.on('comment', handleComment);
+    socket.on('gift', handleGift);
     socket.on('status', (s) => {
       const el = $('status');
       if (s.error) el.textContent = s.error;
@@ -696,6 +762,10 @@ $('username').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('sta
 $('camBtn').addEventListener('click', () => (stream ? stopCamera() : startCamera()));
 $('flipBtn').addEventListener('click', () => { facing = facing === 'user' ? 'environment' : 'user'; startCamera(); });
 $('skipBtn').addEventListener('click', nextRound);
+$('testGift').addEventListener('click', () => {
+  const name = $('testName').value.trim() || 'tester';
+  handleGift({ user: name, nickname: name, giftName: 'Rose', count: 1, coins: 1 });
+});
 $('testClose').addEventListener('click', () => $('test').classList.remove('open'));
 $('testToggle').addEventListener('click', () => {
   $('test').classList.toggle('open');

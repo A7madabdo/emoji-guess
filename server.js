@@ -83,7 +83,7 @@ function createSession(username) {
   async function tryConnect() {
     if (s.stopped) return;
     if (s.connection) s.connection.removeAllListeners();
-    const options = {};
+    const options = { enableExtendedGiftInfo: true };
     if (process.env.SIGN_API_KEY) options.signApiKey = process.env.SIGN_API_KEY;
     const connection = new TikTokLiveConnection(username, options);
     s.connection = connection;
@@ -96,6 +96,23 @@ function createSession(username) {
         user: user.uniqueId || user.userId || 'viewer',
         nickname: user.nickname || user.uniqueId || 'viewer',
         comment,
+      });
+    });
+
+    // Gifts. Streakable gifts (giftType 1) arrive many times while the viewer taps;
+    // we only send the final total when the streak ends.
+    connection.on(WebcastEvent.GIFT, (data) => {
+      const user = data.user || data;
+      const streakable = data.giftType === 1;
+      if (streakable && !data.repeatEnd) return;
+      const count = Number(data.repeatCount || 1);
+      const diamonds = Number(data.diamondCount ?? data.giftDetails?.diamondCount ?? data.extendedGiftInfo?.diamond_count ?? 1);
+      io.to(room(username)).emit('gift', {
+        user: user.uniqueId || user.userId || 'viewer',
+        nickname: user.nickname || user.uniqueId || 'viewer',
+        giftName: data.giftName || data.giftDetails?.giftName || 'a gift',
+        count,
+        coins: diamonds * count,
       });
     });
 
