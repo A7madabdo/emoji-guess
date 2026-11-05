@@ -35,6 +35,16 @@ Tip: turn off auto-lock on the phone so the screen stays on. Keep the phone char
 - ⏭ skip the current puzzle
 - T open the test panel to type comments yourself (good for trying it before going live)
 
+## Sound
+Sound effects and a background music loop were generated with ElevenLabs. Drop the files into
+`public/audio/` with the names listed in `public/audio/README.md`. Until then the game plays small
+built-in synthesized sounds. 🔊 button (or M key) mutes everything.
+
+## Puzzles
+90 puzzles in `public/puzzles.js`: movies, songs, English sayings, Arabic proverbs, Filipino food,
+places and words, and brands. Each has a category shown on screen, and 🔥 hard ones pay double.
+Most accept answers in English, Arabic or Filipino.
+
 ## Gifts = cheats
 Any gift reveals a letter for everyone (a toast shows who sent it). Bigger gifts reveal more letters
 (1 extra per 5 coins, max 3). Whoever gifted in a round gets **2× points** if they win it.

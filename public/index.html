@@ -53,6 +53,9 @@
     box-shadow: 6px 6px 0 var(--ink); transform: rotate(-4deg);
   }
   .setup h1 { font-size: 2.4rem; line-height: 1.05; margin-top: 8px; text-shadow: 4px 4px 0 var(--ink); }
+  .setup h1 .ar { font-size: 1.6rem; color: var(--sun); }
+  .ar { direction: rtl; unicode-bidi: isolate; }
+  .setup p .ar { opacity: 0.9; }
   .setup p { font-size: 1.05rem; font-weight: 600; line-height: 1.4; }
   .setup label { font-size: 1rem; }
   .setup input {
@@ -76,7 +79,7 @@
 
   /* ---------- stream layout ---------- */
   .screen { height: 100%; display: flex; flex-direction: column; }
-  .cam { position: relative; flex: 0 0 44%; background: var(--ink); overflow: hidden; }
+  .cam { position: relative; flex: 0 0 38%; background: var(--ink); overflow: hidden; }
   .cam video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
   .cam .cam-off {
     position: absolute; inset: 0; display: none;
@@ -117,7 +120,7 @@
 
   .game {
     flex: 1; min-height: 0; position: relative;
-    display: flex; flex-direction: column; gap: 6px;
+    display: flex; flex-direction: column; gap: 5px;
     padding: 6px 14px calc(10px + env(safe-area-inset-bottom));
     background-image: repeating-linear-gradient(135deg, var(--violet-deep) 0 2px, transparent 2px 14px);
   }
@@ -139,12 +142,12 @@
   }
   .ring.low .n { animation: shake 1s infinite; }
 
-  .stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; }
+  .stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; padding: 14px 0 10px; }
   .sticker {
     position: relative;
-    padding: 6px 22px;
-    background: var(--white); border: 4px solid var(--ink); border-radius: 22px;
-    box-shadow: 8px 8px 0 var(--ink);
+    padding: 4px 18px;
+    background: var(--white); border: 4px solid var(--ink); border-radius: 18px;
+    box-shadow: 6px 6px 0 var(--ink);
     transform: rotate(-3deg);
   }
   .sticker::after {
@@ -158,7 +161,7 @@
   .sticker.missed::after { content: '✕'; background: var(--pink); color: var(--white); }
   .sticker.enter { animation: slam 0.5s cubic-bezier(.2,1.5,.4,1); }
   .stake {
-    position: absolute; left: -16px; top: -14px; z-index: 1;
+    position: absolute; left: -16px; bottom: -14px; z-index: 1;
     padding: 2px 12px; border-radius: 999px;
     background: var(--pink); color: var(--white); border: 3px solid var(--ink);
     font-size: 0.95rem; line-height: 1.3; transform: rotate(-6deg);
@@ -166,16 +169,16 @@
   }
   .stake.bump { animation: bump 0.3s ease-out; }
   .stake.low { background: var(--ink); color: var(--sun); }
-  .clue { font-size: clamp(3rem, 18vw, 5.4rem); line-height: 1.15; letter-spacing: 0.06em; white-space: nowrap; }
+  .clue { font-size: clamp(2rem, 11vw, 3.6rem); line-height: 1.15; letter-spacing: 0.06em; white-space: nowrap; }
 
-  .tiles { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; min-height: 2.6rem; }
+  .tiles { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; min-height: 2.3rem; }
   .tile {
-    width: 2rem; height: 2.5rem;
+    width: 1.8rem; height: 2.2rem;
     display: grid; place-items: center;
     background: var(--white); color: var(--ink);
     border: 3px solid var(--ink); border-radius: 7px;
     box-shadow: 3px 3px 0 var(--ink);
-    font-size: 1.4rem; line-height: 1;
+    font-size: 1.25rem; line-height: 1;
   }
   .tile .ch { visibility: hidden; }
   .tile.shown .ch { visibility: visible; }
@@ -186,34 +189,47 @@
   .gap { width: 0.6rem; }
 
   .message {
-    text-align: center; font-size: 1.05rem; line-height: 1.2; min-height: 1.5em;
+    text-align: center; font-size: 0.95rem; line-height: 1.2; min-height: 1.5em;
     padding: 2px 10px; border-radius: 10px;
   }
   .message.prompt { animation: pulse 1.6s ease-in-out infinite; }
-  .message.win { background: var(--mint); color: var(--ink); font-size: 1.3rem; border: 3px solid var(--ink); animation: slam 0.5s cubic-bezier(.2,1.5,.4,1); }
+  .message.win { background: var(--mint); color: var(--ink); font-size: 1.1rem; border: 3px solid var(--ink); animation: slam 0.5s cubic-bezier(.2,1.5,.4,1); }
   .message.missed { background: var(--pink); border: 3px solid var(--ink); }
 
-  /* podium */
-  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 74px; }
-  .step { flex: 1; max-width: 110px; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
-  .step .who { font-size: 0.85rem; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .step .block {
-    width: 100%; display: grid; place-items: center; gap: 0;
-    border: 3px solid var(--ink); border-radius: 8px 8px 0 0; color: var(--ink);
-    font-size: 0.95rem; line-height: 1.1; padding-top: 2px;
+  /* compact leaderboard row */
+  .podium { display: flex; justify-content: center; gap: 6px; }
+  .step {
+    display: flex; align-items: center; gap: 5px; min-width: 0; max-width: 34%;
+    padding: 2px 10px 2px 6px; border-radius: 999px;
+    border: 3px solid var(--ink); color: var(--ink); font-size: 0.85rem; line-height: 1.2;
   }
-  .step .block small { font-size: 0.7rem; }
-  .step.first .block { height: 46px; background: var(--sun); }
-  .step.second .block { height: 34px; background: var(--silver); }
-  .step.third .block { height: 26px; background: var(--bronze); }
-  .step.first .who::before { content: '👑 '; }
-  .step.empty .who { opacity: 0.55; font-weight: 600; }
-  .step.empty .block { background: var(--violet-deep); color: var(--white); opacity: 0.8; }
+  .step .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .step .pts { font-variant-numeric: tabular-nums; }
+  .step.first { background: var(--sun); }
+  .step.second { background: var(--silver); }
+  .step.third { background: var(--bronze); }
+  .step.first::before { content: '👑'; }
+  .step.second::before { content: '🥈'; }
+  .step.third::before { content: '🥉'; }
+  .step.empty { background: var(--violet-deep); color: var(--white); opacity: 0.7; font-weight: 600; }
 
-  .feed { list-style: none; font-size: 0.85rem; font-weight: 600; line-height: 1.3; min-height: 2.6em; }
-  .feed li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.6; }
-  .feed li:last-child { opacity: 1; }
-  .feed b { color: var(--sun); font-weight: 800; }
+  /* zone kept clear for TikTok's own comment overlay (bottom-left of the screen) */
+  .chat-zone {
+    flex: 0 0 21%; display: flex; align-items: flex-end; justify-content: flex-end;
+    padding: 0 14px calc(10px + env(safe-area-inset-bottom));
+    background: var(--ink);
+  }
+  .chat-zone .hintline {
+    font-size: 0.8rem; font-weight: 600; opacity: 0.45; text-align: end; max-width: 40%; line-height: 1.2;
+  }
+  .feed { display: none; }
+
+  .cat {
+    position: absolute; left: 50%; top: -14px; transform: translateX(-50%) rotate(-3deg);
+    padding: 1px 12px; border-radius: 999px; white-space: nowrap;
+    background: var(--ink); color: var(--white); font-size: 0.85rem; line-height: 1.4;
+  }
+  .cat.hard { background: var(--pink); }
 
   .takeover {
     position: fixed; inset: 0; z-index: 3; display: none;
@@ -297,13 +313,13 @@
 
 <section class="setup" id="setup">
   <div class="logo">🤔🎉</div>
-  <h1>Emoji Guess</h1>
-  <p>Viewers guess the emoji puzzle in the comments. First correct guess wins points.</p>
-  <label for="username">Your TikTok username</label>
+  <h1>Emoji Guess<br><span class="ar">خمّن الإيموجي</span></h1>
+  <p>Viewers guess the emoji puzzle in the comments. First correct guess wins points.<br><span class="ar">المشاهدون يخمنون في التعليقات، وأول إجابة صحيحة تفوز بالنقاط.</span></p>
+  <label for="username">Your TikTok username · اسم حساب تيك توك</label>
   <input id="username" placeholder="username (without @)" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text">
   <div class="err" id="setupErr"></div>
-  <button class="btn" id="startBtn">Start game</button>
-  <button class="btn quiet" id="testBtn">Try it without TikTok</button>
+  <button class="btn" id="startBtn">Start game · ابدأ اللعبة</button>
+  <button class="btn quiet" id="testBtn">Try it without TikTok · جرّب بدون تيك توك</button>
   <p class="steps">
     <b>1.</b> Tap Start and allow the camera.<br>
     <b>2.</b> In TikTok, tap LIVE and choose <b>Screen share</b> (sometimes called Mobile gaming).<br>
@@ -321,6 +337,7 @@
       <button id="camBtn" aria-label="Camera on or off">📷</button>
       <button id="skipBtn" aria-label="Skip puzzle">⏭</button>
       <button id="testToggle" aria-label="Test comments">T</button>
+      <button id="muteBtn" aria-label="Sound on or off">🔊</button>
     </div>
   </div>
   <div class="zig" aria-hidden="true"></div>
@@ -339,23 +356,24 @@
 
     <div class="stage">
       <div class="gift-toast" id="giftToast"></div>
-      <div class="sticker" id="sticker"><div class="clue" id="clue"></div><span class="stake" id="stake">14 pts</span></div>
+      <div class="sticker" id="sticker"><span class="cat" id="cat"></span><div class="clue" id="clue"></div><span class="stake" id="stake">14 pts</span></div>
     </div>
 
     <div class="tiles" id="tiles"></div>
-    <div class="message prompt" id="message">💬 Type your guess in the comments</div>
+    <div class="message prompt" id="message">💬 Type your guess in the comments · اكتب إجابتك في التعليقات</div>
     <div class="boost" id="boost"></div>
 
     <div class="podium" id="podium"></div>
     <ul class="feed" id="feed"></ul>
   </div>
+  <div class="chat-zone" aria-hidden="true"><div class="hintline">💬 comments · التعليقات</div></div>
 </main>
 
 <div class="takeover" id="takeover" aria-live="polite">
   <div class="card">
     <div class="trophy">🏆</div>
     <div class="name" id="winName"></div>
-    <div class="sub">got it first!</div>
+    <div class="sub">got it first! · أول من عرفها</div>
     <div class="pts" id="winPts"></div>
     <div class="streak" id="winStreak"></div>
   </div>
@@ -378,13 +396,86 @@ const HINT_EVERY = 12;      // reveal a letter every N seconds
 const PAUSE_SECONDS = 6;    // pause after each round
 const SCORE_KEY = 'emoji-guess-scores';
 const NAME_KEY = 'emoji-guess-username';
-const PROMPT = '💬 Type your guess in the comments';
+const PROMPT = '💬 Type your guess in the comments · اكتب إجابتك في التعليقات';
 // Gifts = cheats. Every gift reveals letters for everyone; the gifter gets double points if they win.
 const COINS_PER_LETTER = 5;    // 1 letter per gift, +1 more for every 5 coins (a Rose is 1 coin)
 const MAX_GIFT_LETTERS = 3;    // most letters one gift can reveal
 const BOOST_MULTIPLIER = 2;
 
 const $ = (id) => document.getElementById(id);
+
+// ---------- sound ----------
+// Plays /audio/<name>.mp3 when the file exists (ElevenLabs), otherwise a small synthesized
+// fallback so the game always has sound. Music loops quietly under everything.
+const sound = (() => {
+  const files = { music: 'audio/music.mp3', win: 'audio/win.mp3', hint: 'audio/hint.mp3', gift: 'audio/gift.mp3', tick: 'audio/tick.mp3', miss: 'audio/miss.mp3' };
+  const clips = {};
+  let ctx = null, music = null, muted = false, unlocked = false;
+  const MUSIC_VOL = 0.22;
+  try { muted = localStorage.getItem('emoji-guess-muted') === '1'; } catch {}
+
+  function load() {
+    for (const [k, src] of Object.entries(files)) {
+      const a = new Audio(src);
+      a.preload = 'auto';
+      a.addEventListener('canplaythrough', () => { clips[k] = a; }, { once: true });
+      a.addEventListener('error', () => { clips[k] = null; }, { once: true });
+      if (k === 'music') { a.loop = true; a.volume = MUSIC_VOL; music = a; }
+    }
+  }
+
+  function synth(name) {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = ctx.currentTime;
+    const tone = (freq, start, len, type = 'square', vol = 0.12) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t + start);
+      g.gain.setValueAtTime(0, t + start);
+      g.gain.linearRampToValueAtTime(vol, t + start + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t + start + len);
+      o.connect(g).connect(ctx.destination); o.start(t + start); o.stop(t + start + len + 0.05);
+    };
+    switch (name) {
+      case 'win': [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.35, 'square', 0.1)); break;
+      case 'hint': tone(880, 0, 0.08, 'sine', 0.15); tone(1320, 0.06, 0.1, 'sine', 0.12); break;
+      case 'gift': [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, i * 0.05, 0.25, 'triangle', 0.1)); break;
+      case 'tick': tone(1500, 0, 0.03, 'square', 0.08); break;
+      case 'miss': tone(330, 0, 0.3, 'sawtooth', 0.08); tone(262, 0.28, 0.45, 'sawtooth', 0.08); break;
+      case 'round': tone(660, 0, 0.1, 'triangle', 0.1); tone(880, 0.1, 0.15, 'triangle', 0.1); break;
+    }
+  }
+
+  function play(name) {
+    if (muted) return;
+    const c = clips[name];
+    if (c) { const a = c.cloneNode(); a.volume = name === 'tick' ? 0.5 : 0.9; a.play().catch(() => {}); }
+    else { try { synth(name); } catch {} }
+    if (name === 'win' || name === 'miss') duck();
+  }
+
+  function duck() {
+    if (!music) return;
+    music.volume = 0.06;
+    setTimeout(() => { music.volume = MUSIC_VOL; }, 2500);
+  }
+
+  function start() {        // call from a user tap (browsers block autoplay otherwise)
+    unlocked = true;
+    if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
+    if (ctx?.state === 'suspended') ctx.resume();
+    if (!muted && music) music.play().catch(() => {});
+  }
+
+  function toggleMute() {
+    muted = !muted;
+    try { localStorage.setItem('emoji-guess-muted', muted ? '1' : '0'); } catch {}
+    if (music) { if (muted) music.pause(); else if (unlocked) music.play().catch(() => {}); }
+    return muted;
+  }
+
+  load();
+  return { play, start, toggleMute, isMuted: () => muted };
+})();
 let queue = [];
 let round = 0;
 let current = null;
@@ -403,7 +494,7 @@ let lastWinner = null;
 let boosted = new Map(); // user -> nickname, for this round
 let giftToastTimer = null;
 let streak = 0;
-const pointsNow = () => 5 + Math.ceil(timeLeft / 5);
+const pointsNow = () => (5 + Math.ceil(timeLeft / 5)) * (current?.hard ? 2 : 1);
 
 const ARC_LEN = 2 * Math.PI * 24;
 $('arc').style.strokeDasharray = ARC_LEN;
@@ -425,6 +516,9 @@ function isCorrect(comment) {
     c === a || tight === a.replace(/ /g, '') || (' ' + c + ' ').includes(' ' + a + ' '));
 }
 
+const CAT_AR = { 'Movie': 'فيلم', 'Song': 'أغنية', 'Saying': 'مثل إنجليزي', 'Brand': 'ماركة', 'Pinoy food': 'أكل فلبيني', 'Pinoy place': 'مكان فلبيني', 'Pinoy word': 'كلمة فلبينية', 'مثل عربي': 'Arabic proverb' };
+const catLabel = (c) => c && CAT_AR[c] ? c + ' · ' + CAT_AR[c] : c;
+
 // ---------- rounds ----------
 function shuffle(list) {
   for (let i = list.length - 1; i > 0; i--) {
@@ -440,6 +534,8 @@ function nextRound() {
   if (!queue.length) queue = shuffle(window.PUZZLES.slice());
   const p = queue.pop();
   current = {
+    cat: p.cat || '',
+    hard: !!p.hard,
     clue: p.clue,
     display: p.answers[0].toUpperCase(),
     accept: p.answers.map(normalize).filter(Boolean),
@@ -453,8 +549,13 @@ function nextRound() {
   phase = 'playing';
 
   $('takeover').classList.remove('show');
-  $('round').textContent = 'Round ' + round;
+  $('round').replaceChildren(document.createTextNode('Round ' + round + ' · '), Object.assign(document.createElement('span'), { className: 'ar', textContent: 'جولة ' + round }));
   $('clue').textContent = current.clue;
+  const cat = $('cat');
+  cat.textContent = (current.hard ? '🔥 ' : '') + catLabel(current.cat);
+  cat.className = 'cat' + (current.hard ? ' hard' : '');
+  cat.style.display = current.cat ? '' : 'none';
+  sound.play('round');
   const st = $('sticker');
   st.className = 'sticker'; void st.offsetWidth; st.classList.add('enter');
   setMessage(PROMPT, 'prompt');
@@ -467,6 +568,7 @@ function onTick() {
   timeLeft--;
   updateTimer();
   if (timeLeft <= 0) return endRound(null);
+  if (timeLeft <= 10) sound.play('tick');
   if ((ROUND_SECONDS - timeLeft) % HINT_EVERY === 0) revealHint();
 }
 
@@ -515,6 +617,7 @@ function revealHint(cls = 'hint', force = false) {
   const pick = hidden[Math.floor(Math.random() * hidden.length)];
   revealed.add(pick.dataset.i);
   pick.classList.add('shown', cls);
+  sound.play('hint');
   return true;
 }
 
@@ -529,6 +632,7 @@ function handleGift(g) {
     boosted.set(g.user, g.nickname);
     renderBoost();
   }
+  sound.play('gift');
   const what = g.count > 1 ? g.count + '× ' + g.giftName : g.giftName;
   const line = got ? (got === 1 ? '1 letter revealed' : got + ' letters revealed') : 'thank you!';
   showGiftToast('🎁 ' + g.nickname + ' sent ' + what, line + ' · ' + BOOST_MULTIPLIER + '× points if they win');
@@ -571,16 +675,18 @@ function endRound(winner) {
     renderPodium();
     box.classList.add('win');
     $('sticker').classList.add('win');
-    setMessage('🏆 ' + winner.nickname + ' got it! +' + pts, 'win');
+    setMessage('🏆 ' + winner.nickname + ' got it! · عرفها +' + pts, 'win');
     streak = winner.user === lastWinner ? streak + 1 : 1;
     lastWinner = winner.user;
     showTakeover(winner.nickname, pts, streak);
+    sound.play('win');
     confetti();
   } else {
     box.classList.add('missed');
     $('sticker').classList.add('missed');
-    setMessage('Nobody got it. Next one coming!', 'missed');
+    setMessage('Nobody got it · ما أحد عرفها', 'missed');
     lastWinner = null; streak = 0;
+    sound.play('miss');
   }
   pauseTimer = setTimeout(nextRound, PAUSE_SECONDS * 1000);
 }
@@ -670,21 +776,21 @@ function saveScores() {
 }
 function renderPodium() {
   const top = Object.values(scores).sort((a, b) => b.pts - a.pts).slice(0, 3);
-  const order = [[1, 'second', '2nd'], [0, 'first', '1st'], [2, 'third', '3rd']];
-  $('podium').replaceChildren(...order.map(([i, cls, label]) => {
+  const order = [[0, 'first'], [1, 'second'], [2, 'third']];
+  $('podium').replaceChildren(...order.map(([i, cls]) => {
     const s = top[i];
     const step = document.createElement('div');
     step.className = 'step ' + cls + (s ? '' : ' empty');
     const who = document.createElement('span');
     who.className = 'who';
-    who.textContent = s ? s.name : 'Who\'s next?';
-    const block = document.createElement('div');
-    block.className = 'block';
-    block.textContent = s ? s.pts : '';
-    const small = document.createElement('small');
-    small.textContent = label;
-    block.append(small);
-    step.append(who, block);
+    who.textContent = s ? s.name : 'open';
+    step.append(who);
+    if (s) {
+      const pts = document.createElement('span');
+      pts.className = 'pts';
+      pts.textContent = s.pts;
+      step.append(pts);
+    }
     return step;
   }));
 }
@@ -742,6 +848,8 @@ function connectLive(username) {
 // ---------- setup + controls ----------
 function begin(username) {
   $('setup').classList.add('hidden');
+  sound.start();
+  $('muteBtn').textContent = sound.isMuted() ? '🔇' : '🔊';
   connectLive(username);
   if (!username) $('status').textContent = 'Test mode';
   startCamera();
@@ -759,6 +867,7 @@ $('startBtn').addEventListener('click', () => {
 $('testBtn').addEventListener('click', () => { begin(''); $('test').classList.add('open'); });
 $('username').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('startBtn').click(); });
 
+$('muteBtn').addEventListener('click', () => { $('muteBtn').textContent = sound.toggleMute() ? '🔇' : '🔊'; });
 $('camBtn').addEventListener('click', () => (stream ? stopCamera() : startCamera()));
 $('flipBtn').addEventListener('click', () => { facing = facing === 'user' ? 'environment' : 'user'; startCamera(); });
 $('skipBtn').addEventListener('click', nextRound);
@@ -785,6 +894,7 @@ document.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if (k === 't') $('testToggle').click();
   if (k === 'n') nextRound();
+  if (k === 'm') $('muteBtn').click();
   if (k === 'r' && confirm('Reset the leaderboard?')) { scores = {}; saveScores(); renderPodium(); }
 });
 
